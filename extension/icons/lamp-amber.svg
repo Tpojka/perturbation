@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Needs you: an amber disc with a dark centre dot. -->
+  <circle cx="64" cy="64" r="52.5" fill="#f9ab00" stroke="#202124" stroke-opacity=".35" stroke-width="6"/>
+  <circle cx="64" cy="64" r="16" fill="#202124"/>
+</svg>

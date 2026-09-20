@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Unperturbed: a hollow green ring. -->
+  <path fill="#1e8e3e" fill-rule="evenodd" stroke="#202124" stroke-opacity=".35" stroke-width="6"
+        d="M64 11.5a52.5 52.5 0 1 0 0 105a52.5 52.5 0 1 0 0-105zM64 37a27 27 0 1 1 0 54a27 27 0 1 1 0-54z"/>
+</svg>

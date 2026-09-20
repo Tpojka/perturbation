@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Perturbation",
+  "version": "1.0.0",
+  "description": "One toolbar lamp for every coding agent on this machine: red while any agent works, amber when one needs you, green when all are free.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3lkZLTW2WKdu32eFmIX8lvvwoxiQhydAFUEq4OE28kp9+fw+r9lQxe0naFVVSUpOL49vQJlEuWML4GAaFCh89uvx9SNkGvvGBOqrtHP8Bon+wKeQbRn1DOacju9SliEWKATrBKbBkZMiS9D56Ie/AD6DEeZb52RhC3nDTfloInV8ypPW5mFueJemKvqMeO8nzRQpkKRqqfRloaVaRPdWRrXfQrkINOZRa/z8koBKU0y7DLKW0TI806NEMuD7W6bUaIvC/vsRS3HJddyvJkiFAkXSAcPmFVTdTzAQSkFx925dXB5DR2SmxhDOrjtrcTrnjyryEt4OqG6V62e9eKjiaQIDAQAB",
+  "permissions": [
+    "nativeMessaging",
+    "alarms",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Perturbation: connecting…",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/lamp-grey-16.png",
+      "32": "icons/lamp-grey-32.png",
+      "48": "icons/lamp-grey-48.png",
+      "128": "icons/lamp-grey-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/lamp-green-16.png",
+    "32": "icons/lamp-green-32.png",
+    "48": "icons/lamp-green-48.png",
+    "128": "icons/lamp-green-128.png"
+  }
+}
