@@ -80,6 +80,14 @@ class HookTest(IsolatedTestCase):
         claude("Stop")
         self.assertEqual(state.summary("claude")["state"], "ready")
 
+    @mock.patch("perturbation.notify.send")
+    def test_the_project_name_survives_events_that_lack_it(self, send_):
+        config.save({"notifications": True})
+        send("goose", {"event": "PreToolUse", "session_id": "g1", "working_dir": "/work/Đurđevac"})
+        send("goose", {"event": "Stop", "session_id": "g1", "last_assistant_message": "Done."})
+        self.assertEqual(send_.call_args.args[:2], ("Goose is ready · Đurđevac", "Done."))
+        self.assertEqual(state.project("goose", "g1"), "Đurđevac")
+
     def test_update_survives_the_json_round_trip(self):
         update = Update("s1", "waiting", Notice(NEEDS_YOU, "Wants to run: ls"), "project", 5.0)
         self.assertEqual(Update.from_json(json.loads(json.dumps(update.to_json()))), update)

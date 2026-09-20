@@ -56,8 +56,11 @@ class InstallTest(InstallerTestCase):
         commands = system.Commands(paths.app_file())
         for adapter in agents.registered():
             event, payload = BUSY[adapter.ID]
-            command = commands.hook(adapter.ID, event)
-            for argv in shells(command):
+            shell = getattr(adapter, "SHELL", None)
+            if adapter.SHAPE != "config":
+                continue  # a plugin file runs no shell command of ours
+            command = commands.hook(adapter.ID, event, shell)
+            for argv in shells(command, shell):
                 with self.subTest(agent=adapter.ID, shell=argv[0]):
                     state.clear(adapter.ID, "s1")
                     result = subprocess.run(argv, input=json.dumps(payload).encode(), cwd=self.home, capture_output=True)
@@ -70,7 +73,10 @@ class InstallTest(InstallerTestCase):
         paths.app_file().unlink()
         for adapter in agents.registered():
             event, payload = BUSY[adapter.ID]
-            for argv in shells(commands.hook(adapter.ID, event)):
+            shell = getattr(adapter, "SHELL", None)
+            if adapter.SHAPE != "config":
+                continue
+            for argv in shells(commands.hook(adapter.ID, event, shell), shell):
                 with self.subTest(agent=adapter.ID, shell=argv[0], app="missing"):
                     result = subprocess.run(argv, input=json.dumps(payload).encode(), cwd=self.home, capture_output=True)
                     self.assertEqual(result.returncode, 0, result.stderr)

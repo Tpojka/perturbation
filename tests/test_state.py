@@ -36,6 +36,15 @@ class StateTest(IsolatedTestCase):
         self.assertEqual(value, state.WAITING)
         self.assertIsInstance(stamp, int)
 
+    def test_the_project_name_is_kept_beside_the_state(self):
+        state.set_state("claude", "a", state.BUSY, "project")
+        self.assertEqual(state.current("claude", "a")[0], "busy")
+        self.assertEqual(state.project("claude", "a"), "project")
+        self.assertEqual(state.summary("claude"), {"state": "busy", "busy": 1, "waiting": 0, "total": 1})
+        state.set_state("claude", "a", state.READY)
+        self.assertIsNone(state.project("claude", "a"))
+        self.assertIsNone(state.project("claude", "never"))
+
     def test_clear_removes_session(self):
         state.set_state("claude", "a", state.BUSY)
         state.clear("claude", "a")

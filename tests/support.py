@@ -21,6 +21,9 @@ BUSY = {
     "codex": (None, {"hook_event_name": "UserPromptSubmit", "session_id": "s1", "cwd": "/work/project"}),
     "copilot": (None, {"hook_event_name": "UserPromptSubmit", "session_id": "s1", "cwd": "/work/project"}),
     "antigravity": ("busy", {"conversationId": "s1", "workspacePaths": ["/work/project"]}),
+    "opencode": (None, {"type": "session.status", "properties": {"sessionID": "s1", "status": {"type": "busy"}}}),
+    "goose": (None, {"event": "UserPromptSubmit", "session_id": "s1"}),
+    "qwen": (None, {"hook_event_name": "UserPromptSubmit", "session_id": "s1", "cwd": "/work/project"}),
 }
 
 
@@ -29,11 +32,15 @@ def stdin(text):
     return io.TextIOWrapper(io.BytesIO(text.encode("utf-8")), encoding="utf-8")
 
 
-def shells(command):
-    """How agents run a hook command: as a string, through a shell."""
+def shells(command, shell=None):
+    """How agents run a hook command: as a string, through a shell. `shell` is "sh" for agents that use
+    `sh -c` on every OS (on Windows that is Git Bash, when present)."""
     if sys.platform == "win32":
+        if shell == "sh":
+            sh = shutil.which("sh")
+            return [[sh, "-c", command]] if sh else []
         return [["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", command]]
-    return [[shell, "-c", command] for shell in ("/bin/sh", shutil.which("bash")) if shell]
+    return [[s, "-c", command] for s in ("/bin/sh", shutil.which("bash")) if s]
 
 
 def write_json(path, data):
@@ -44,6 +51,14 @@ def write_json(path, data):
 
 def read_json(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+AGENT_BINARIES = ("claude", "codex", "copilot", "agy", "opencode", "goose", "qwen")
+_real_which = shutil.which
+
+
+def _no_agents(name, *args, **kwargs):
+    return None if name in AGENT_BINARIES else _real_which(name, *args, **kwargs)
 
 
 class IsolatedTestCase(unittest.TestCase):
@@ -67,7 +82,7 @@ class IsolatedTestCase(unittest.TestCase):
         for var in ("CLAUDE_CONFIG_DIR", "CODEX_HOME", "COPILOT_HOME", "CLAUDICATION_HOME", "CODEXALGIA_HOME", "COPILONIDAL_HOME", "ANTIGRAVALGIA_HOME"):
             os.environ.pop(var, None)
         os.makedirs(env["LOCALAPPDATA"], exist_ok=True)
-        # Nothing on PATH looks like an agent unless a test says so.
-        which = mock.patch("shutil.which", return_value=None)
+        # Nothing on PATH looks like an agent unless a test says so (adapters import shutil themselves).
+        which = mock.patch("shutil.which", side_effect=_no_agents)
         which.start()
         self.addCleanup(which.stop)

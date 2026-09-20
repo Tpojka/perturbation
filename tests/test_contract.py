@@ -23,6 +23,8 @@ class ContractTest(IsolatedTestCase):
 
         with self.assertRaises(TypeError):
             base.check(Half)
+        self.assertEqual([a.ID for a in agents.by_tier(base.PRO)], ["claude", "codex", "copilot", "antigravity"])
+        self.assertEqual([a.ID for a in agents.by_tier(base.FREE)], ["opencode", "goose", "qwen"])
 
     def test_every_adapter(self):
         for adapter in agents.registered():
@@ -33,6 +35,7 @@ class ContractTest(IsolatedTestCase):
         base.check(adapter)
         self.assertRegex(adapter.ID, r"^[a-z][a-z0-9_-]*$")
         self.assertTrue(adapter.NAME and adapter.SHORT)
+        self.assertIn(adapter.TIER, (base.PRO, base.FREE))
         self.assertIsInstance(adapter.per_event_commands(), bool)
         self.assertIn(adapter.ID, BUSY, "tests/support.py needs a busy payload for every adapter")
         self.assertIn(adapter.detect(), (None,) if not adapter.detect() else (adapter.detect(),))
