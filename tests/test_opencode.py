@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import subprocess
@@ -26,8 +27,8 @@ class OpencodePluginTest(IsolatedTestCase):
     def test_the_plugin_carries_the_paths_and_parses(self):
         path = opencode.install(COMMANDS)
         text = path.read_text(encoding="utf-8")
-        self.assertIn(f"const APP = {os.path.join('/data', 'perturbation.pyz')!r}".replace("'", '"'), text)
-        self.assertIn("const PYTHON = ", text)
+        self.assertIn(f"const APP = {json.dumps(str(COMMANDS.app))};", text)
+        self.assertIn(f"const PYTHON = {json.dumps(COMMANDS.python)};", text)
         self.assertNotIn("__PYTHON__", text)
         self.assertIn("perturbation.shutdown", text)
         self.assertEqual(opencode.installed(), "~/.config/opencode/plugins/perturbation.js")
