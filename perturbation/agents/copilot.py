@@ -6,12 +6,13 @@ only our hooks, so there is nothing to merge with and nothing to back up.
 import shutil
 
 from . import jsonfile
-from .base import BUSY, CONFIG, MARKER, NEEDS_YOU, READY, WAITING, Check, Notice, Update, describe, home, project_of, session_id
+from .base import BUSY, CONFIG, MARKER, PRO, NEEDS_YOU, READY, WAITING, Check, Notice, Update, describe, home, project_of, session_id
 
 ID = "copilot"
 NAME = "GitHub Copilot CLI"
 SHORT = "Copilot"
 SHAPE = CONFIG
+TIER = PRO
 ORDER = 3
 
 TIMEOUT_SECONDS = 5

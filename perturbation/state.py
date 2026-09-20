@@ -1,6 +1,7 @@
 """Per-agent, per-session state: hooks write one file per session, the host sums them up per agent.
 
-Files live at <data>/sessions/<agent_id>/<session_id> and hold one word: busy, waiting or ready.
+Files live at <data>/sessions/<agent_id>/<session_id> and hold one word: busy, waiting or ready, with
+the session's project name on a second line when a hook has learnt it (not every event carries it).
 """
 import os
 import time
@@ -27,19 +28,33 @@ def path(agent_id, session_id):
     return paths.sessions_dir() / _safe(agent_id) / _safe(session_id)
 
 
-def set_state(agent_id, session_id, value):
+def set_state(agent_id, session_id, value, project=None):
     target = path(agent_id, session_id)
     target.parent.mkdir(parents=True, exist_ok=True)
     tmp = target.with_name(target.name + ".tmp")
-    tmp.write_text(value, encoding="utf-8")
+    tmp.write_text(value + (f"\n{project}" if project else ""), encoding="utf-8")
     os.replace(tmp, target)  # atomic, so the host never reads a half-written file
+
+
+def _read(agent_id, session_id):
+    target = path(agent_id, session_id)
+    lines = target.read_text(encoding="utf-8").splitlines()
+    return lines[0].strip() if lines else "", lines[1].strip() if len(lines) > 1 else None, target.stat().st_mtime_ns
 
 
 def current(agent_id, session_id):
     """(state, mtime_ns) of a session, or None. The mtime tells whether it changed since."""
     try:
-        target = path(agent_id, session_id)
-        return target.read_text(encoding="utf-8").strip(), target.stat().st_mtime_ns
+        value, _, stamp = _read(agent_id, session_id)
+        return value, stamp
+    except OSError:
+        return None
+
+
+def project(agent_id, session_id):
+    """The project name a hook recorded for the session, or None."""
+    try:
+        return _read(agent_id, session_id)[1] or None
     except OSError:
         return None
 
@@ -64,7 +79,7 @@ def sessions(agent_id, now=None):
             continue
         try:
             age = now - entry.stat().st_mtime
-            value = entry.read_text(encoding="utf-8").strip()
+            value = entry.read_text(encoding="utf-8").split("\n", 1)[0].strip()
         except OSError:
             continue
         if age > SESSION_STALE_SECONDS:

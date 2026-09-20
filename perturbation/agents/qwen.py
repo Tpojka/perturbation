@@ -1,6 +1,11 @@
-"""Claude Code: hooks merged into ~/.claude/settings.json, the file it shares with everything else.
+"""Qwen Code: hooks merged into ~/.qwen/settings.json.
 
-Claude names the event in the payload (`hook_event_name`), so one command serves every event.
+Qwen Code forked Gemini CLI but its hooks are Claude-shaped: `hook_event_name`, `session_id` and `cwd`
+in every payload, a nested {matcher, hooks: [...]} table under `hooks`, timeouts in seconds, exit 2 as
+a blocking error. Anything a hook prints on exit 0 is added to the model's context on some events, so
+printing nothing is not optional. A `shell` field picks bash or PowerShell per hook.
+
+Verified against docs/users/features/hooks.md in QwenLM/qwen-code on 2026-09-20.
 """
 import shutil
 
@@ -8,8 +13,8 @@ from . import jsonfile
 from .base import (
     BUSY,
     CONFIG,
+    FREE,
     MARKER,
-    PRO,
     NEEDS_YOU,
     READY,
     STOPPED,
@@ -25,17 +30,16 @@ from .base import (
     summarize,
 )
 
-ID = "claude"
-NAME = "Claude Code"
-SHORT = "Claude"
+ID = "qwen"
+NAME = "Qwen Code"
+SHORT = "Qwen"
 SHAPE = CONFIG
-TIER = PRO
-ORDER = 1
+TIER = FREE
+ORDER = 7
 
-TIMEOUT_SECONDS = 5
+TIMEOUT_SECONDS = 5  # seconds; Qwen reads 1000 and above as milliseconds
 
-# Notification types that mean Claude is blocked on you. `idle_prompt` only repeats a finished turn.
-NEEDS_YOU_TYPES = ("permission_prompt", "elicitation_dialog", "elicitation_url_dialog", "agent_needs_input")
+NEEDS_YOU_TYPES = ("permission_prompt",)
 IDLE = "idle_prompt"
 
 # Event -> matcher to register with (None: every occurrence).
@@ -44,7 +48,9 @@ EVENTS = {
     "UserPromptSubmit": None,
     "PreToolUse": "*",
     "PostToolUse": "*",
+    "PostToolUseFailure": "*",
     "Notification": "|".join(NEEDS_YOU_TYPES + (IDLE,)),
+    "PermissionRequest": "*",
     "Stop": None,
     "StopFailure": None,
     "PreCompact": "manual|auto",
@@ -54,7 +60,7 @@ EVENTS = {
 
 
 def config_home():
-    return home("CLAUDE_CONFIG_DIR", ".claude")
+    return home(None, ".qwen")
 
 
 def settings_path():
@@ -64,8 +70,8 @@ def settings_path():
 def detect():
     if config_home().is_dir():
         return f"found {describe(config_home())}"
-    if shutil.which("claude"):
-        return "found claude on PATH"
+    if shutil.which("qwen"):
+        return "found qwen on PATH"
     return None
 
 
@@ -73,15 +79,14 @@ def per_event_commands():
     return False
 
 
-def entry(command):
-    return {"type": "command", "command": command, "timeout": TIMEOUT_SECONDS}
+def entry(commands):
+    item = {"type": "command", "command": commands.hook(), "name": "perturbation", "timeout": TIMEOUT_SECONDS}
+    if commands.shell == "powershell":
+        item["shell"] = "powershell"
+    return item
 
 
 def install(commands):
-    """Merge our groups into the `hooks` table, replacing any earlier ones of ours. Every other key and
-    every other hook stays as it was, and the file is backed up first."""
-    command = commands.hook()
-
     def change(data):
         hooks = data.setdefault("hooks", {})
         if not isinstance(hooks, dict):
@@ -89,7 +94,7 @@ def install(commands):
         jsonfile.strip_groups(hooks, (MARKER,))
         for event, matcher in EVENTS.items():
             group = {"matcher": matcher} if matcher else {}
-            group["hooks"] = [entry(command)]
+            group["hooks"] = [entry(commands)]
             hooks.setdefault(event, []).append(group)
 
     jsonfile.update(settings_path(), change)
@@ -117,7 +122,7 @@ def installed(markers=(MARKER,)):
 
 
 def verify():
-    return "/hooks inside Claude Code lists them"
+    return "/hooks inside Qwen Code lists them"
 
 
 def parse(event, payload):
@@ -126,17 +131,23 @@ def parse(event, payload):
     project = project_of(payload.get("cwd"))
     if event == "SessionStart":
         return Update(session, READY, project=project)
-    if event in ("UserPromptSubmit", "PreToolUse", "PostToolUse", "PreCompact"):
+    if event in ("UserPromptSubmit", "PreToolUse", "PostToolUse", "PostToolUseFailure", "PreCompact"):
         return Update(session, BUSY, project=project)
     if event == "Notification":
-        return _notification(session, payload, project)
+        kind = payload.get("notification_type")
+        if kind in NEEDS_YOU_TYPES:
+            return Update(session, WAITING, Notice(NEEDS_YOU, payload.get("message") or "Qwen is waiting for you"), project)
+        return Update(session, READY, project=project) if kind == IDLE else None
+    if event == "PermissionRequest":
+        return Update(session, WAITING, Notice(NEEDS_YOU, _permission(payload)), project)
     if event == "Stop":
         message = summarize(payload.get("last_assistant_message")) or "Task finished"
         return Update(session, READY, Notice(READY, message), project)
     if event == "StopFailure":
-        return Update(session, READY, Notice(STOPPED, _error(payload)), project)
+        kind = str(payload.get("error") or "error")
+        details = summarize(payload.get("error_details"))
+        return Update(session, READY, Notice(STOPPED, f"{kind}: {details}" if details else kind), project)
     if event == "PostCompact":
-        # A manual /compact ends with Claude waiting for you; an automatic one happens mid-turn and Claude carries on.
         if payload.get("trigger") == "auto":
             return Update(session, BUSY, project=project)
         return Update(session, READY, Notice(READY, "Context compacted"), project)
@@ -145,22 +156,13 @@ def parse(event, payload):
     return None
 
 
-def _notification(session, payload, project):
-    kind = payload.get("notification_type")
-    message = payload.get("message") or ""
-    if not kind:  # older payloads name no type; the idle reminder is recognisable by its text
-        kind = IDLE if "waiting for your input" in message else "permission_prompt"
-    if kind in NEEDS_YOU_TYPES:
-        return Update(session, WAITING, Notice(NEEDS_YOU, message or "Claude is waiting for you"), project)
-    if kind == IDLE:
-        return Update(session, READY, project=project)
-    return None
-
-
-def _error(payload):
-    kind = str(payload.get("error_type") or "error")
-    message = summarize(payload.get("error_message"))
-    return f"{kind}: {message}" if message else kind
+def _permission(payload):
+    tool = payload.get("tool_name") or "a tool"
+    tool_input = payload.get("tool_input")
+    command = tool_input.get("command") if isinstance(tool_input, dict) else None
+    if tool == "run_shell_command" and command:
+        return f"Wants to run: {summarize(str(command))}"
+    return f"Wants to use {tool}"
 
 
 def doctor(commands):
@@ -182,5 +184,5 @@ def doctor(commands):
     stale = [h for h in ours if h.get("command") != commands.hook()]
     checks.append(Check(not stale, "hook command points at the installed app" if not stale else f"{len(stale)} entries use an old command; run the installer again"))
     if data.get("disableAllHooks"):
-        checks.append(Check(False, "disableAllHooks is set in settings.json, so Claude Code runs no hooks at all"))
+        checks.append(Check(False, "disableAllHooks is set in settings.json, so Qwen Code runs no hooks at all"))
     return checks

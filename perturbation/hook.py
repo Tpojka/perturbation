@@ -46,9 +46,11 @@ def apply(adapter, update):
     if update.state is None:
         state.clear(adapter.ID, update.session_id)
         return
-    state.set_state(adapter.ID, update.session_id, update.state)
+    # Not every event names the project (Goose's Stop, opencode's idle), so the last one seen is kept.
+    project = update.project or state.project(adapter.ID, update.session_id)
+    state.set_state(adapter.ID, update.session_id, update.state, project)
     if update.notice and (previous is None or previous[0] != update.state):
-        _notify(adapter, update)
+        _notify(adapter, update._replace(project=project))
 
 
 def _notify(adapter, update):

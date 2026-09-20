@@ -12,6 +12,7 @@ from .base import (
     BUSY,
     CONFIG,
     MARKER,
+    PRO,
     NEEDS_YOU,
     READY,
     WAITING,
@@ -29,6 +30,7 @@ ID = "codex"
 NAME = "Codex CLI"
 SHORT = "Codex"
 SHAPE = CONFIG
+TIER = PRO
 ORDER = 2
 
 # Event -> state to record; None removes the session. Subagents report their parent's session_id, so

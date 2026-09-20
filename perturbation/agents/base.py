@@ -8,6 +8,7 @@ A module is an adapter when it has these attributes (checked by the registry on 
     SHORT    = "Codex"           notification titles: "Codex is ready · project"
     SHAPE    = "config"          "config": we write entries into its hooks file; "plugin": we drop a plugin file
     ORDER    = 2                 default position in the popup and the installer
+    TIER     = "pro"             "pro": a paid agent, always listed; "free": free-tier, folded in the installer
 
     def detect() -> Optional[str]
         What was found when the agent looks installed ("~/.codex", "codex on PATH"), else None.
@@ -59,7 +60,10 @@ STOPPED = "stopped"
 CONFIG = "config"
 PLUGIN = "plugin"
 
-REQUIRED = ("ID", "NAME", "SHORT", "SHAPE", "ORDER", "detect", "per_event_commands", "install", "uninstall", "installed", "verify", "parse", "doctor")
+PRO = "pro"
+FREE = "free"
+
+REQUIRED = ("ID", "NAME", "SHORT", "SHAPE", "ORDER", "TIER", "detect", "per_event_commands", "install", "uninstall", "installed", "verify", "parse", "doctor")
 
 
 class Notice(NamedTuple):
@@ -107,6 +111,8 @@ def check(module):
         raise TypeError(f"{module.__name__} is not an adapter: missing {', '.join(missing)}")
     if module.SHAPE not in (CONFIG, PLUGIN):
         raise TypeError(f"{module.__name__}.SHAPE must be {CONFIG!r} or {PLUGIN!r}")
+    if module.TIER not in (PRO, FREE):
+        raise TypeError(f"{module.__name__}.TIER must be {PRO!r} or {FREE!r}")
     return module
 
 

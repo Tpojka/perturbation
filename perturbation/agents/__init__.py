@@ -6,7 +6,7 @@ import importlib
 
 from . import base
 
-MODULES = ("claude", "codex", "copilot", "antigravity")
+MODULES = ("claude", "codex", "copilot", "antigravity", "opencode", "goose", "qwen")
 
 _registry = None
 
@@ -41,3 +41,8 @@ def ordered(order):
     result = [by_id[i] for i in order if i in by_id]
     result += [m for m in registered() if m not in result]
     return result
+
+
+def by_tier(tier):
+    """The adapters of one tier, in registry order."""
+    return [m for m in registered() if m.TIER == tier]

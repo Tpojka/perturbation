@@ -13,12 +13,13 @@ import shutil
 from pathlib import Path
 
 from . import jsonfile
-from .base import BUSY, CONFIG, MARKER, NEEDS_YOU, READY, WAITING, Check, Notice, Update, describe, project_of, session_id
+from .base import BUSY, CONFIG, MARKER, PRO, NEEDS_YOU, READY, WAITING, Check, Notice, Update, describe, project_of, session_id
 
 ID = "antigravity"
 NAME = "Antigravity CLI"
 SHORT = "Antigravity"
 SHAPE = CONFIG
+TIER = PRO
 ORDER = 4
 
 TIMEOUT_SECONDS = 5

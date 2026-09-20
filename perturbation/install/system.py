@@ -33,18 +33,25 @@ class Commands:
         self.python = sys.executable if sys.platform == "win32" else "python3"
         self.shell = "powershell" if sys.platform == "win32" else "bash"
 
-    def _base(self, *args):
-        if sys.platform == "win32":
+    def _base(self, shell, *args):
+        if shell == "powershell":
             return " ".join(["&", _powershell_quote(self.python), _powershell_quote(str(self.app))] + list(args))
-        return " ".join([self.python, shlex.quote(str(self.app))] + list(args))
+        if sys.platform == "win32":
+            # A POSIX shell on Windows (Git Bash, which Goose uses): forward slashes and this interpreter.
+            python, app = Path(sys.executable).as_posix(), self.app.as_posix()
+        else:
+            python, app = self.python, str(self.app)
+        return " ".join([shlex.quote(python), shlex.quote(app)] + list(args))
 
-    def hook(self, agent_id, event=None):
+    def hook(self, agent_id, event=None, shell=None):
+        """`shell` is "sh" for agents that run every hook through `sh -c` whatever the OS."""
+        shell = shell or self.shell
         args = ["hook", agent_id] + ([event] if event else [])
-        return self._base(*args) + ("; exit 0" if sys.platform == "win32" else " || true")
+        return self._base(shell, *args) + ("; exit 0" if shell == "powershell" else " || true")
 
-    def statusline(self, agent_id):
+    def statusline(self, agent_id, shell=None):
         # Its stdout *is* the status line, so no `|| true`: the script prints one line and swallows errors.
-        return self._base("statusline", agent_id)
+        return self._base(shell or self.shell, "statusline", agent_id)
 
     def for_agent(self, agent_id):
         return AgentCommands(self, agent_id)
@@ -57,13 +64,14 @@ class AgentCommands:
         self._commands = commands
         self.agent_id = agent_id
         self.app = commands.app
+        self.python = commands.python if sys.platform == "win32" else "python3"
         self.shell = commands.shell
 
-    def hook(self, event=None):
-        return self._commands.hook(self.agent_id, event)
+    def hook(self, event=None, shell=None):
+        return self._commands.hook(self.agent_id, event, shell)
 
-    def statusline(self):
-        return self._commands.statusline(self.agent_id)
+    def statusline(self, shell=None):
+        return self._commands.statusline(self.agent_id, shell)
 
 
 def write_host_launcher(app):
