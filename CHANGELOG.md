@@ -3,6 +3,12 @@
 All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- The installer's picker lists all seven agents alike, the free-tier ones after the pro-tier ones. Nothing is folded behind a "more" row any more; `AgentMenu(..., fold_free=True)` keeps that behaviour available.
+
 ## [1.1.0] - 2026-09-20
 
 Three free-tier agents join the four pro-tier ones, and the installer's agent question becomes a picker.

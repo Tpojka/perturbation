@@ -1,10 +1,10 @@
 """The installer's questions: which agents to watch, what to install, and yes/no.
 
 The agent question is a small picker. Number keys toggle an agent directly, ↑/↓ (or j/k) move a cursor
-and Space toggles the agent under it, Enter confirms. The free-tier agents stay folded behind one
-"more" row until one of them is found on the machine or already watched, or until you press +, the way
-opencode's provider picker keeps the long tail behind "Other". When stdin isn't a terminal, the same
-picker reads whole lines instead, so it works in pipes and tests.
+and Space toggles the agent under it, Enter confirms. All seven agents are listed alike, the free-tier
+ones after the pro-tier ones; folding the free tier behind a "more" row is still supported
+(`fold_free=True`) but off by default. When stdin isn't a terminal, the same picker reads whole lines
+instead, so it works in pipes and tests.
 """
 import os
 import sys
@@ -29,7 +29,7 @@ MORE = object()  # the folded row
 class AgentMenu:
     """The picker's state: which agents are checked, where the cursor is, whether the free tier is shown."""
 
-    def __init__(self, adapters, selected, detected, fold_free=True):
+    def __init__(self, adapters, selected, detected, fold_free=False):
         self.adapters = list(adapters)
         self.selected = set(selected)
         self.detected = detected
@@ -102,7 +102,7 @@ class AgentMenu:
         return [a.ID for a in self.adapters if a.ID in self.selected]
 
 
-def choose_agents(adapters, selected, detected, fold_free=True):
+def choose_agents(adapters, selected, detected, fold_free=False):
     """Ask which agents to watch. Returns the chosen ids in registry order, or None when the user backs out."""
     menu = AgentMenu(adapters, selected, detected, fold_free)
     print()

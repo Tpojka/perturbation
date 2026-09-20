@@ -11,7 +11,7 @@ One Chrome toolbar lamp for every coding agent on your machine, with optional de
 
 Only one lamp is ever lit, and the fill pattern carries the meaning on its own: solid is busy, dotted needs you, a ring is free, dashes are disconnected. Hover for a per-agent summary; click for a list with one lamp per agent, a mute switch each, and rows you can drag into the order you want.
 
-It watches seven agents: four pro-tier ones, and three free-tier ones the installer keeps folded behind a "more" row until it finds one on your machine.
+It watches seven agents: four pro-tier ones and three free-tier ones, all listed alike in the installer.
 
 Perturbation subsumes four earlier projects, one per agent: [Claudication](https://github.com/Tpojka/claudication) (Claude Code), [Codexalgia](https://github.com/Tpojka/codexalgia) (Codex CLI), [Copilonidal](https://github.com/Tpojka/copilonidal) (GitHub Copilot CLI) and [Antigravalgia](https://github.com/Tpojka/antigravalgia) (Antigravity CLI). Four hosts, four extensions and four toolbar buttons become one, and the installer removes the old ones for you.
 
@@ -48,8 +48,10 @@ Which agents should be watched?
   [x] 2) Codex CLI              found ~/.codex
   [ ] 3) GitHub Copilot CLI     not found
   [x] 4) Antigravity CLI        found ~/.gemini/antigravity-cli
-      +) 3 more, free tier: opencode, Goose, Qwen Code
-Space or 1-4 toggles, ↑/↓ moves, a: all, n: none, + shows more, Enter confirms:
+  [x] 5) opencode               found ~/.config/opencode
+  [ ] 6) Goose                  not found
+  [ ] 7) Qwen Code              not found
+Space or 1-7 toggles, ↑/↓ moves, a: all, n: none, Enter confirms:
 
 What should be installed?
   1) Chrome extension
@@ -60,7 +62,7 @@ Play a sound with notifications? [Y/n]:
 Let Antigravity show "needs you" alerts? This sets its status line command. [y/N]:
 ```
 
-Number keys toggle an agent directly; the arrow keys (or `j`/`k`) move the cursor and **Space** toggles the agent under it. The three free-tier agents stay behind the `+` row, the way opencode's own provider picker keeps its long tail behind "Other", unless one of them is found on the machine or already watched; `+` (or `m`) shows them. Outside a terminal, in a pipe or a script, the same picker reads whole lines: `2 + 6` toggles Codex, unfolds the free tier and toggles Goose.
+Number keys toggle an agent directly; the arrow keys (or `j`/`k`) move the cursor and **Space** toggles the agent under it. All seven agents are listed the same way, the free-tier ones last. Outside a terminal, in a pipe or a script, the same picker reads whole lines: `2 6` toggles Codex and Goose.
 
 If it finds Claudication, Codexalgia, Copilonidal or Antigravalgia, it lists what they left behind and offers to remove it; see [Coming from the four earlier projects](#coming-from-the-four-earlier-projects).
 
