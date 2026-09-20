@@ -2,7 +2,7 @@
 
 **Red while an agent works. Amber when one needs you. Green when they're all free.**
 
-One Chrome toolbar lamp for every coding agent on your machine: Claude Code, Codex CLI, GitHub Copilot CLI and Antigravity CLI. Optional desktop notifications. It works on macOS, Ubuntu and Windows.
+One Chrome toolbar lamp for every coding agent on your machine: Claude Code, Codex CLI, GitHub Copilot CLI and Antigravity CLI, plus opencode, Goose and Qwen Code on the free tier. Optional desktop notifications. It works on macOS, Ubuntu and Windows.
 
 > *perturbation* (n.): in physics and astronomy, a small disturbance of a system by an outside influence, stated without any judgement of whether the disturbance is welcome. That is what this does: it interrupts you, sometimes because an agent genuinely needs you and sometimes not, and takes no position on which.
 
@@ -70,7 +70,8 @@ Which agents should be watched?
   [x] 2) Codex CLI              found ~/.codex
   [ ] 3) GitHub Copilot CLI     not found
   [x] 4) Antigravity CLI        found ~/.gemini/antigravity-cli
-Toggle with 1-4 (a: all, n: none), Enter to confirm:
+      +) 3 more, free tier: opencode, Goose, Qwen Code
+Space or 1-4 toggles, ↑/↓ moves, a: all, n: none, + shows more, Enter confirms:
 
 What should be installed?
   1) Chrome extension
@@ -141,11 +142,14 @@ Each agent is one small adapter that knows its hook file and its events. Everyth
 | Codex CLI | prompts, tool calls | permission requests unanswered for 5 s | `Stop`, `Interrupt` |
 | GitHub Copilot CLI | prompts, tool calls | permission prompts, questions | `Stop`, an unrecoverable error |
 | Antigravity CLI | invocations, tool calls | its status line, when you turn it on | `Stop` when fully idle |
+| opencode | session status, tool calls | permission prompts | `session.idle`, an error |
+| Goose | prompts, tool calls, file and shell steps | never: Goose has no permission event | `Stop` |
+| Qwen Code | prompts, tool calls, compaction | permission prompts and requests | `Stop`, a manual compaction, an error |
 
 Every hook command exits 0 and prints nothing, even when Python or the app is missing. Copilot denies a tool call when a hook fails, Claude's `PreCompact` blocks compaction on exit 2, and Antigravity reads a hook's stdout as a decision, so this is what keeps the agents unharmed. A busy session with no activity for 15 minutes counts as ready, and one waiting for an hour does too, for the agents that never say goodbye.
 
 ---
 
-Perturbation 1.0.0 · [MIT](https://github.com/Tpojka/perturbation/blob/main/LICENSE) © 2026 Goran Grbic · An independent project, not affiliated with Anthropic, OpenAI, GitHub or Google.
+Perturbation 1.1.0 · [MIT](https://github.com/Tpojka/perturbation/blob/main/LICENSE) © 2026 Goran Grbic · An independent project, not affiliated with Anthropic, OpenAI, GitHub or Google.
 
 The four it replaces: [Claudication](https://claudication.tpojka.com), [Codexalgia](https://codexalgia.tpojka.com), [Copilonidal](https://copilonidal.tpojka.com), [Antigravalgia](https://antigravalgia.tpojka.com).

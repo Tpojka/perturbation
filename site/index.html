@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Perturbation · one Chrome toolbar lamp for every coding agent</title>
-<meta name="description" content="One Chrome toolbar lamp for Claude Code, Codex CLI, GitHub Copilot CLI and Antigravity CLI: red while any agent works, amber when one needs you, green when all are free. Optional desktop notifications on macOS, Ubuntu and Windows.">
+<meta name="description" content="One Chrome toolbar lamp for Claude Code, Codex CLI, GitHub Copilot CLI, Antigravity CLI, opencode, Goose and Qwen Code: red while any agent works, amber when one needs you, green when all are free. Optional desktop notifications on macOS, Ubuntu and Windows.">
 <meta property="og:title" content="Perturbation">
 <meta property="og:description" content="Red while an agent works. Amber when one needs you. Green when they're all free. One Chrome toolbar lamp for every coding agent on your machine.">
 <meta property="og:url" content="https://perturbation.tpojka.com/">
@@ -211,7 +211,7 @@
   <div class="hero">
     <div>
       <h1><span class="r">Red</span> while an agent works.<br><span class="a">Amber</span> when one needs you.<br><span class="g">Green</span> when they're all free.</h1>
-      <p class="lead">One Chrome toolbar lamp for every coding agent on your machine: Claude Code, Codex CLI, GitHub Copilot CLI and Antigravity CLI. Optional desktop notifications. It works on macOS, Ubuntu and Windows.</p>
+      <p class="lead">One Chrome toolbar lamp for every coding agent on your machine: Claude Code, Codex CLI, GitHub Copilot CLI and Antigravity CLI, plus opencode, Goose and Qwen Code on the free tier. Optional desktop notifications. It works on macOS, Ubuntu and Windows.</p>
       <p class="definition">perturbation (n.): in physics and astronomy, a small disturbance of a system by an outside influence, stated without any judgement of whether the disturbance is welcome.</p>
       <div class="cta">
         <a class="btn primary" href="#install">Install</a>
@@ -314,7 +314,8 @@ install.cmd</code></pre></div>
   [x] 2) Codex CLI              found ~/.codex
   [ ] 3) GitHub Copilot CLI     not found
   [x] 4) Antigravity CLI        found ~/.gemini/antigravity-cli
-Toggle with 1-4 (a: all, n: none), Enter to confirm:
+      +) 3 more, free tier: opencode, Goose, Qwen Code
+Space or 1-4 toggles, ↑/↓ moves, a: all, n: none, + shows more, Enter confirms:
 
 What should be installed?
   1) Chrome extension
@@ -383,6 +384,9 @@ Chrome ──starts──► perturbation.pyz host
           <tr><td>Codex CLI</td><td>prompts, tool calls</td><td>permission requests unanswered for 5 s</td><td><code>Stop</code>, <code>Interrupt</code></td></tr>
           <tr><td>GitHub Copilot CLI</td><td>prompts, tool calls</td><td>permission prompts, questions</td><td><code>Stop</code>, an unrecoverable error</td></tr>
           <tr><td>Antigravity CLI</td><td>invocations, tool calls</td><td>its status line, when you turn it on</td><td><code>Stop</code> when fully idle</td></tr>
+          <tr><td>opencode</td><td>session status, tool calls</td><td>permission prompts</td><td><code>session.idle</code>, an error</td></tr>
+          <tr><td>Goose</td><td>prompts, tool calls, file and shell steps</td><td>never: Goose has no permission event</td><td><code>Stop</code></td></tr>
+          <tr><td>Qwen Code</td><td>prompts, tool calls, compaction</td><td>permission prompts and requests</td><td><code>Stop</code>, a manual compaction, an error</td></tr>
         </tbody>
       </table>
     </div>
@@ -392,7 +396,7 @@ Chrome ──starts──► perturbation.pyz host
 
 <footer>
   <div class="wrap">
-    <span>Perturbation 1.0.0 · <a href="https://github.com/Tpojka/perturbation/blob/main/LICENSE">MIT</a> © 2026 Goran Grbic</span>
+    <span>Perturbation 1.1.0 · <a href="https://github.com/Tpojka/perturbation/blob/main/LICENSE">MIT</a> © 2026 Goran Grbic</span>
     <span>The four it replaces: <a href="https://claudication.tpojka.com">Claudication</a>, <a href="https://codexalgia.tpojka.com">Codexalgia</a>, <a href="https://copilonidal.tpojka.com">Copilonidal</a>, <a href="https://antigravalgia.tpojka.com">Antigravalgia</a>. · <a href="index.md">Markdown version</a></span>
     <span>An independent project, not affiliated with Anthropic, OpenAI, GitHub or Google.</span>
   </div>

@@ -11,6 +11,8 @@ One Chrome toolbar lamp for every coding agent on your machine, with optional de
 
 Only one lamp is ever lit, and the fill pattern carries the meaning on its own: solid is busy, dotted needs you, a ring is free, dashes are disconnected. Hover for a per-agent summary; click for a list with one lamp per agent, a mute switch each, and rows you can drag into the order you want.
 
+It watches seven agents: four pro-tier ones, and three free-tier ones the installer keeps folded behind a "more" row until it finds one on your machine.
+
 Perturbation subsumes four earlier projects, one per agent: [Claudication](https://github.com/Tpojka/claudication) (Claude Code), [Codexalgia](https://github.com/Tpojka/codexalgia) (Codex CLI), [Copilonidal](https://github.com/Tpojka/copilonidal) (GitHub Copilot CLI) and [Antigravalgia](https://github.com/Tpojka/antigravalgia) (Antigravity CLI). Four hosts, four extensions and four toolbar buttons become one, and the installer removes the old ones for you.
 
 > *perturbation* (n.): in physics and astronomy, a small disturbance of a system by an outside influence, stated without any judgement of whether the disturbance is welcome. That is what this does: it interrupts you, sometimes because an agent genuinely needs you and sometimes not, and takes no position on which.
@@ -23,8 +25,11 @@ Perturbation subsumes four earlier projects, one per agent: [Claudication](https
 | Codex CLI | `~/.codex` or `codex` on PATH | `~/.codex/hooks.json` | permission requests, after a 5 s grace | yes |
 | GitHub Copilot CLI | `~/.copilot` or `copilot` on PATH | `~/.copilot/hooks/perturbation.json` | permission prompts, questions | yes |
 | Antigravity CLI | `~/.gemini/antigravity-cli` or `agy` on PATH | one bundle in `~/.gemini/config/hooks.json` | only with its [status line](#antigravitys-status-line-needs-you-alerts) | no, damping only |
+| opencode (free tier) | `~/.config/opencode` or `opencode` on PATH | a plugin file, `~/.config/opencode/plugins/perturbation.js` | permission prompts | when opencode exits, or a session is deleted |
+| Goose (free tier) | `~/.config/goose` or `goose` on PATH | a plugin directory, `~/.agents/plugins/perturbation/` | none: Goose has no permission event | yes |
+| Qwen Code (free tier) | `~/.qwen` or `qwen` on PATH | merged into `~/.qwen/settings.json` | permission prompts and requests | yes |
 
-Each agent is one adapter module; see [Adding an agent](docs/adding-an-agent.md).
+Each agent is one adapter module with a `TIER`; see [Adding an agent](docs/adding-an-agent.md).
 
 ## Install
 
@@ -39,11 +44,12 @@ The installer looks for each agent, pre-checks the ones it finds, and asks:
 
 ```
 Which agents should be watched?
-  [x] 1) Claude Code            found ~/.claude
+> [x] 1) Claude Code            found ~/.claude
   [x] 2) Codex CLI              found ~/.codex
   [ ] 3) GitHub Copilot CLI     not found
   [x] 4) Antigravity CLI        found ~/.gemini/antigravity-cli
-Toggle with 1-4 (a: all, n: none), Enter to confirm:
+      +) 3 more, free tier: opencode, Goose, Qwen Code
+Space or 1-4 toggles, ↑/↓ moves, a: all, n: none, + shows more, Enter confirms:
 
 What should be installed?
   1) Chrome extension
@@ -54,6 +60,8 @@ Play a sound with notifications? [Y/n]:
 Let Antigravity show "needs you" alerts? This sets its status line command. [y/N]:
 ```
 
+Number keys toggle an agent directly; the arrow keys (or `j`/`k`) move the cursor and **Space** toggles the agent under it. The three free-tier agents stay behind the `+` row, the way opencode's own provider picker keeps its long tail behind "Other", unless one of them is found on the machine or already watched; `+` (or `m`) shows them. Outside a terminal, in a pipe or a script, the same picker reads whole lines: `2 + 6` toggles Codex, unfolds the free tier and toggles Goose.
+
 If it finds Claudication, Codexalgia, Copilonidal or Antigravalgia, it lists what they left behind and offers to remove it; see [Coming from the four earlier projects](#coming-from-the-four-earlier-projects).
 
 To skip the prompts, pass the choice and the agents directly:
@@ -62,6 +70,7 @@ To skip the prompts, pass the choice and the agents directly:
 python3 -m perturbation.install 2 --agents claude,codex     # with sound
 python3 -m perturbation.install 2 --all --no-sound --statusline
 python3 -m perturbation.install 1 --migrate                 # the detected agents, and remove the predecessors
+python3 -m perturbation.install 2 --agents claude,opencode,goose,qwen
 ```
 
 Everything is copied into a per-user data directory, so you can move or delete the repository afterwards:
@@ -79,7 +88,7 @@ Then load the extension from that directory (only needed once):
 3. Pin **Perturbation** to the toolbar.
 4. Restart any running agent sessions so they load the hooks.
 
-Per agent, the installer prints how to confirm the registration: `/hooks` inside Claude Code, `/hooks` inside Codex (where you also have to **trust** the new hooks, or Codex skips them), a restart for Copilot, and `agy -p "/hooks" --output-format json` for Antigravity.
+Per agent, the installer prints how to confirm the registration: `/hooks` inside Claude Code, Codex (where you also have to **trust** the new hooks, or Codex skips them) and Qwen Code, a restart for Copilot, `agy -p "/hooks" --output-format json` for Antigravity, and for opencode and Goose a session file appearing under `sessions/` in the data directory once you start them.
 
 Running the installer again is safe. It updates the installed copy and rewrites its own entries; agents you uncheck lose their hooks, and Codex's hooks are rewritten in place so the trust you gave them survives.
 
@@ -92,8 +101,11 @@ Running the installer again is safe. It updates the installed copy and rewrites 
 | GitHub Copilot CLI | `~/.copilot/hooks/perturbation.json` | a file of its own, so there is nothing to merge; Copilot's agent in VS Code reads it too |
 | Antigravity CLI | `~/.gemini/config/hooks.json` | one top-level bundle named `perturbation`, merged by key; the file is shared with the `/hooks` command, the Antigravity 2.0 app and the IDE |
 | Antigravity CLI, opt-in | `~/.gemini/antigravity-cli/settings.json` | a `statusLine` block with `stack_with_default`, and never over a status line you already have |
+| opencode | `~/.config/opencode/plugins/perturbation.js` | a plugin file of its own, with the interpreter and app paths baked in; it forwards session events to the hook from a detached process and never throws |
+| Goose | `~/.agents/plugins/perturbation/` | a plugin directory of its own (`plugin.json` and `hooks/hooks.json`); turn it off without deleting it by listing `perturbation` under `disabledPlugins` in `~/.config/goose/settings.json` |
+| Qwen Code | `~/.qwen/settings.json` | merged like Claude's, each entry named `perturbation`; on Windows the entries ask for PowerShell with `"shell": "powershell"` |
 
-Claude Code honours `CLAUDE_CONFIG_DIR`, Codex `CODEX_HOME` and Copilot `COPILOT_HOME`; on Windows the dot-directories live under `%USERPROFILE%`. A file that can't be parsed is left byte-identical and reported, and the rest of the install goes ahead.
+Claude Code honours `CLAUDE_CONFIG_DIR`, Codex `CODEX_HOME`, Copilot `COPILOT_HOME` and opencode `OPENCODE_CONFIG_DIR`; on Windows the dot-directories live under `%USERPROFILE%`. Goose runs every hook through `sh -c`, on Windows too, so its command is written for a POSIX shell (Git Bash) with forward slashes. A file that can't be parsed is left byte-identical and reported, and the rest of the install goes ahead.
 
 ### Coming from the four earlier projects
 
@@ -166,12 +178,13 @@ It never overwrites a status line you already have: if `statusLine.command` is s
 ## How it works
 
 ```
-Claude Code   ──hook──┐
-Codex CLI     ──hook──┤
-Copilot CLI   ──hook──┼──► perturbation.pyz hook <agent> [<event>]
-Antigravity   ──hook──┘              │
-                                     ├──► <data>/sessions/<agent>/<session>   (busy | waiting | ready)
-                                     └──► desktop notification (if enabled, and the state changed)
+Claude Code   ──hook────┐
+Codex CLI     ──hook────┤
+Copilot CLI   ──hook────┤
+Antigravity   ──hook────┼──► perturbation.pyz hook <agent> [<event>]
+Goose         ──hook────┤              │
+Qwen Code     ──hook────┤              ├──► <data>/sessions/<agent>/<session>   (busy | waiting | ready)
+opencode      ──plugin──┘              └──► desktop notification (if enabled, and the state changed)
 Antigravity   ──status line──► perturbation.pyz statusline antigravity
 
 Chrome ──starts──► perturbation-host ──► perturbation.pyz host
@@ -237,6 +250,43 @@ One hook handler serves every agent: it picks the adapter from the command line,
 | status line `tool_confirmation_pending` | | waiting | needs you |
 | status line `thinking`, `working`, `tool_use` / `idle`, `initializing` | | busy / ready | |
 
+**opencode** (events from the plugin; `sessionID` or `info.id` in the properties; subagent sessions are never counted):
+
+| Event | Session becomes | Notification |
+| --- | --- | --- |
+| `session.created` | ready | |
+| `session.status` `busy` or `retry`, `tool.execute.before`, `tool.execute.after`, `permission.replied` | busy | |
+| `permission.updated` or `permission.asked` | waiting | needs you, with the permission's title |
+| `session.idle` | ready | is ready |
+| `session.error` | ready | stopped, with the error name (none for an abort) |
+| `session.deleted`, or opencode shutting down | forgotten | |
+| `session.compacted` | unchanged | |
+
+**Goose** (`event` in the payload; `working_dir` arrives only on tool events, so the last one seen is remembered for the "is ready" title):
+
+| Event | Session becomes | Notification |
+| --- | --- | --- |
+| `SessionStart` | ready | |
+| `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `BeforeShellExecution`, `AfterShellExecution`, `BeforeReadFile`, `AfterFileEdit` | busy | |
+| `Stop` | ready | is ready, with the last message |
+| `SessionEnd` | forgotten | |
+
+Goose has no permission or notification event, so it never turns the lamp amber.
+
+**Qwen Code** (`hook_event_name`, Claude-shaped):
+
+| Event | Matcher | Session becomes | Notification |
+| --- | --- | --- | --- |
+| `SessionStart` | | ready | |
+| `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure` | `*` on tools | busy | |
+| `Notification` | `permission_prompt` | waiting | needs you |
+| `Notification` | `idle_prompt` | ready | |
+| `PermissionRequest` | `*` | waiting | needs you, naming the tool or command |
+| `Stop` | | ready | is ready, with the last message |
+| `StopFailure` | | ready | stopped, with the error |
+| `PreCompact` / `PostCompact` | `manual`, `auto` | busy / ready (manual) or busy (auto) | is ready after a manual one |
+| `SessionEnd` | | forgotten | |
+
 ### Damping
 
 Not every agent signals an interrupt, a crash or a closed terminal, so the state settles on its own:
@@ -247,11 +297,11 @@ Not every agent signals an interrupt, a crash or a closed terminal, so the state
 | A waiting session with no activity counts as ready after | 60 minutes | `PERTURBATION_WAITING_STALE_SECONDS` |
 | A session with no activity at all is forgotten after | 24 hours | |
 
-Antigravity has no session-end event, so its sessions rely on these entirely.
+Antigravity has no session-end event, so its sessions rely on these entirely. opencode keeps its sessions on disk, so its plugin forgets them when opencode shuts down; a session that ends any other way is damped like Antigravity's.
 
 ### Never in the way
 
-Every hook command is hardened: `python3 '…/perturbation.pyz' hook <agent> || true` on macOS and Linux, `& '<python>' '…\perturbation.pyz' hook <agent>; exit 0` in PowerShell. It prints nothing and exits 0 even when Python or the app is missing. This is not decoration: Copilot denies a tool call when a `preToolUse` hook exits non-zero, Claude's `PreCompact` exit 2 blocks compaction, and Antigravity parses a hook's stdout as a decision (`allow`, `deny`, `force_ask`) with undocumented exit codes. The status line likewise never prints an error, because its stdout *is* the status line. Payloads are read as UTF-8 bytes, because Windows would decode text stdin with the ANSI code page and corrupt non-ASCII project names.
+Every hook command is hardened: `python3 '…/perturbation.pyz' hook <agent> || true` on macOS and Linux, `& '<python>' '…\perturbation.pyz' hook <agent>; exit 0` in PowerShell. It prints nothing and exits 0 even when Python or the app is missing. This is not decoration: Copilot denies a tool call when a `preToolUse` hook exits non-zero, Claude's and Qwen's `PreCompact` exit 2 blocks compaction, Qwen adds whatever a hook prints on exit 0 to the model's context, Goose reads a `Stop` hook's stdout as a decision that can keep the turn going, and Antigravity parses a hook's stdout as a decision (`allow`, `deny`, `force_ask`) with undocumented exit codes. The opencode plugin wraps everything in try/catch, spawns the hook detached and never awaits it. The status line likewise never prints an error, because its stdout *is* the status line. Payloads are read as UTF-8 bytes, because Windows would decode text stdin with the ANSI code page and corrupt non-ASCII project names.
 
 The extension's `key` in `extension/manifest.json` fixes its ID to `jbibmafopagpblieglanmabkegglkpgo`, the only extension the native host accepts. The open native-messaging port keeps the service worker alive; a half-minute alarm reconnects after a crash, and the popup answers from the worker's cached status, so it never waits on the host.
 
@@ -269,8 +319,10 @@ perturbation/            Python package (standard library only)
   agents/                one adapter module per agent, and the contract they follow
     base.py              the contract: Update, Notice, Check, helpers
     jsonfile.py          careful edits to files that belong to an agent
-    claude.py  codex.py  copilot.py  antigravity.py
-  install/               installer, agent menu, migration, doctor, OS specifics
+    claude.py  codex.py  copilot.py  antigravity.py     pro tier
+    opencode.py  goose.py  qwen.py                      free tier
+    assets/opencode-plugin.js                           the one piece of JavaScript: opencode's plugin
+  install/               installer, agent picker, migration, doctor, OS specifics
 extension/               Chrome extension (Manifest V3): lamp, badge, tooltip, popup
 site/                    landing page for perturbation.tpojka.com
 docs/                    the project brief and the adapter guide

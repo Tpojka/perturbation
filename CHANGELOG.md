@@ -3,6 +3,21 @@
 All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-09-20
+
+Three free-tier agents join the four pro-tier ones, and the installer's agent question becomes a picker.
+
+### Added
+
+- **opencode** (`opencode`): a plugin file, `~/.config/opencode/plugins/perturbation.js`, the only JavaScript in the project. It forwards `session.created`, `session.status`, `session.idle`, `session.error`, `session.deleted`, `session.compacted`, `permission.updated`/`permission.asked` and `permission.replied`, plus the `tool.execute.*` hooks, to `perturbation.pyz hook opencode` from a detached process it never awaits; it skips subagent sessions and forgets its sessions when opencode shuts down. Event shapes verified against `@opencode-ai/sdk` 1.18.10 and opencode 1.18.31. Honours `OPENCODE_CONFIG_DIR`.
+- **Goose** (`goose`): a plugin directory, `~/.agents/plugins/perturbation/`, with `plugin.json` and `hooks/hooks.json`. Goose names the event in its payload and runs every hook through `sh -c` on every OS, so its command is written for a POSIX shell even on Windows. No permission event, so no waiting state. `doctor` notices `disabledPlugins`. Verified against `crates/goose/src/hooks/mod.rs` and the plugin guide in `aaif-goose/goose`.
+- **Qwen Code** (`qwen`): hooks merged into `~/.qwen/settings.json`. Its hooks are Claude-shaped (`hook_event_name`, `session_id`, `cwd`, seconds, exit 2 blocks), with `PermissionRequest` and `Notification`/`permission_prompt` both giving "needs you", `StopFailure` giving "stopped", and a `shell` field that asks for PowerShell on Windows. Verified against `docs/users/features/hooks.md` in `QwenLM/qwen-code`.
+- **Tiers.** Every adapter declares `TIER`: `pro` (Claude Code, Codex CLI, Copilot CLI, Antigravity CLI) or `free` (opencode, Goose, Qwen Code).
+- **A picker for the agent question.** The arrow keys (or `j`/`k`) move a cursor and **Space** toggles the agent under it; number keys still toggle directly. The free-tier agents stay folded behind one `+` row until one is found on the machine or already watched, or until `+` is pressed, the way opencode's provider picker keeps its long tail behind "Other". Outside a terminal the picker reads whole lines, so pipes and tests keep working.
+- **The project name is remembered per session.** Not every event carries it (Goose's `Stop`, opencode's `session.idle`), so the state file keeps the last one seen and the "is ready" title still names the project.
+- `Commands.hook(..., shell="sh")` for adapters whose agent runs hooks through a POSIX shell regardless of the OS.
+- 161 tests; the opencode plugin is parsed with `node --check` in the tests and by `doctor` when Node is present.
+
 ## [1.0.0] - 2026-09-20
 
 The first release. It replaces four shipped projects, one per agent, with one repository, one installer, one native host and one Chrome toolbar button: [Claudication](https://github.com/Tpojka/claudication) 2.1.0 (Claude Code), [Codexalgia](https://github.com/Tpojka/codexalgia) 1.0.0 (Codex CLI), [Copilonidal](https://github.com/Tpojka/copilonidal) 1.0.0 (GitHub Copilot CLI) and [Antigravalgia](https://github.com/Tpojka/antigravalgia) 1.0.0 (Antigravity CLI). Everything those four verified against their agents is carried over; the differences are listed below.
@@ -29,4 +44,5 @@ The first release. It replaces four shipped projects, one per agent, with one re
 - Notifications are sent only when a session's stored state changes, for every agent. The predecessors notified on every qualifying event.
 - Its own identifiers: native host `com.tpojka.perturbation`, extension ID `jbibmafopagpblieglanmabkegglkpgo`, data directory `Perturbation`, app `perturbation.pyz`, config marker `perturbation.pyz`, env vars `PERTURBATION_*`.
 
+[1.1.0]: https://github.com/Tpojka/perturbation/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Tpojka/perturbation/releases/tag/v1.0.0

@@ -12,6 +12,8 @@ Copy the closest existing adapter and change what differs:
 | has a hooks file of its own and cares about hook identity (trust) | `codex.py` |
 | loads every file in a hooks directory | `copilot.py` |
 | carries no event name in its payload, or has a status line | `antigravity.py` |
+| is not a shell-hook system at all, but has a plugin API | `opencode.py` and `assets/opencode-plugin.js` |
+| runs every hook through `sh -c`, on Windows too | `goose.py` (set `SHELL = "sh"`) |
 
 The module must expose:
 
@@ -21,6 +23,7 @@ NAME     = "Goose"          # shown in the popup and the installer
 SHORT    = "Goose"          # notification titles: "Goose is ready · project"
 SHAPE    = "config"         # "config" (entries in its hooks file) or "plugin" (a plugin file of ours)
 ORDER    = 6                # default position in the popup and the installer
+TIER     = "free"           # "pro" is always listed; "free" is folded behind "more" in the installer
 
 def detect() -> Optional[str]                  # "found ~/.config/goose", or None
 def per_event_commands() -> bool               # True when the payload carries no event name
