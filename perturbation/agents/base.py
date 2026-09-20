@@ -142,9 +142,10 @@ def home(env_var, default):
 
 
 def describe(path):
-    """A path as the installer prints it: with ~ for the home directory."""
+    """A path as the installer prints it: with ~ for the home directory, and forward slashes after it
+    on every OS, so the output reads the same as the documentation."""
     text = str(path)
     home_dir = str(Path.home())
     if text.startswith(home_dir):
-        return "~" + text[len(home_dir):]
+        return "~" + text[len(home_dir):].replace("\\", "/")
     return text
