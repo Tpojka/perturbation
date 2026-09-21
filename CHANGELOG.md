@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **opencode never said "is ready".** opencode ends a turn with two events at once, a status change to idle and `session.idle`. The first was recorded as ready without a notification, so the second found nothing new. Both now carry the notice, and whichever is recorded first sends it.
+- **Hooks for one agent now take turns.** Some agents run two hooks for one ending at the same moment: opencode's two idle events, Antigravity's `Stop` hook and status line, Qwen Code's permission request and notification. Both read the same old state, so one could hide the other's notification or both could notify. A per-agent lock around read, decide and write now makes the first one notify and the rest find nothing new.
+- **The opencode plugin hands events on one at a time, in order.** It used to start one hook per event at once, so a slow hook could record its event after a later one. A hook that hangs is killed after 5 seconds so it can't hold up the queue.
+- **Antigravity's status line announces the end of a turn too,** so turning it on no longer silences the `Stop` hook's "is ready".
+- **Copilot says "stopped" on an unrecoverable error,** with the error, instead of ending the turn in silence.
+- **"Is ready" and "stopped" need work before them.** They go out only when the session was busy or waiting, so a session that starts idle stays quiet.
+- Two hooks writing the same session at once no longer share one temporary file.
+
 ### Added
 
 - The extension's details page in Chrome links to the website, https://perturbation.tpojka.com, through `homepage_url` in its manifest.

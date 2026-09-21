@@ -130,7 +130,7 @@ When the OS notifier is on, an agent that finishes or needs you raises a desktop
 | An agent needs a permission or an answer | *Codex* needs you · *project* | the prompt, or what it wants to run |
 | A turn ends with an error (Claude Code) | *Claude* stopped · *project* | the error type |
 
-Notifications are sent only when a session's stored state actually changes, so a repeated prompt or an idle reminder never adds one. Codex asks for permission before it decides whether to grant it itself, so its "needs you" waits five seconds and is dropped if the session moves on (`PERTURBATION_APPROVAL_GRACE_SECONDS`).
+Notifications are sent only when a session's stored state actually changes, so a repeated prompt or an idle reminder never adds one. An "is ready" or "stopped" notification also needs the session to have been busy or waiting first. When an agent reports one ending twice, such as opencode's two idle events or Antigravity's Stop hook and status line, you get one notification: hooks for the same agent take turns under a lock. Codex asks for permission before it decides whether to grant it itself, so its "needs you" waits five seconds and is dropped if the session moves on (`PERTURBATION_APPROVAL_GRACE_SECONDS`).
 
 How each OS shows them:
 
@@ -240,7 +240,7 @@ One hook handler serves every agent: it picks the adapter from the command line,
 | `SessionStart` | ready | |
 | `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure` | busy | |
 | `notification` with `permission_prompt` or `elicitation_dialog` | waiting | needs you, with the message |
-| `ErrorOccurred` with `recoverable: false` | ready | |
+| `ErrorOccurred` with `recoverable: false` | ready | stopped, with the error |
 | `Stop` | ready | is ready |
 | `SessionEnd` | forgotten | |
 
@@ -252,7 +252,9 @@ One hook handler serves every agent: it picks the adapter from the command line,
 | `Stop` with `fullyIdle: true` | `stop` | ready | is ready |
 | `Stop` with `fullyIdle: false` | `stop` | unchanged | |
 | status line `tool_confirmation_pending` | | waiting | needs you |
-| status line `thinking`, `working`, `tool_use` / `idle`, `initializing` | | busy / ready | |
+| status line `thinking`, `working`, `tool_use` | | busy | |
+| status line `idle` | | ready | is ready, unless the `Stop` hook said so first |
+| status line `initializing` | | ready | |
 
 **opencode** (events from the plugin; `sessionID` or `info.id` in the properties; subagent sessions are never counted):
 
@@ -261,7 +263,7 @@ One hook handler serves every agent: it picks the adapter from the command line,
 | `session.created` | ready | |
 | `session.status` `busy` or `retry`, `tool.execute.before`, `tool.execute.after`, `permission.replied` | busy | |
 | `permission.updated` or `permission.asked` | waiting | needs you, with the permission's title |
-| `session.idle` | ready | is ready |
+| `session.status` idle, or `session.idle` | ready | is ready, once for the pair |
 | `session.error` | ready | stopped, with the error name (none for an abort) |
 | `session.deleted`, or opencode shutting down | forgotten | |
 | `session.compacted` | unchanged | |
