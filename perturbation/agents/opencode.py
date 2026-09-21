@@ -104,6 +104,10 @@ def parse(event, payload):
     if kind == "session.status":
         status = props.get("status") if isinstance(props.get("status"), dict) else {}
         value = STATUS.get(status.get("type"))
+        if value == READY:
+            # opencode publishes this and then session.idle for the same ending; whichever is
+            # recorded first notifies, the other finds nothing new.
+            return Update(session, READY, Notice(READY, "Task finished"))
         return Update(session, value) if value else None
     if kind in ("tool.execute.before", "tool.execute.after", "permission.replied", "message.updated"):
         return Update(session, BUSY)

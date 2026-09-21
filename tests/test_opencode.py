@@ -2,6 +2,10 @@ import json
 import os
 import shutil
 import subprocess
+import sys
+import textwrap
+import types
+import unittest
 from pathlib import Path
 
 from perturbation.agents import opencode
@@ -55,6 +59,43 @@ class OpencodePluginTest(IsolatedTestCase):
         self.assertFalse(opencode.doctor(other)[1].ok)
 
 
+NODE = shutil.which("node")
+
+
+class OpencodePluginRunTest(IsolatedTestCase):
+    @unittest.skipUnless(NODE, "needs Node.js")
+    def test_the_plugin_hands_events_on_one_at_a_time_in_order(self):
+        # opencode ends a turn with session.status (idle) and session.idle at once. The first hook is
+        # made the slow one: if the plugin started both together, the second would finish first.
+        log = os.path.join(self.home, "order.log")
+        app = os.path.join(self.home, "fake_app.py")
+        with open(app, "w", encoding="utf-8") as f:
+            f.write(textwrap.dedent(f"""
+                import json, sys, time
+                event = json.loads(sys.stdin.read())
+                if event["type"] == "session.status":
+                    time.sleep(0.4)
+                with open({log!r}, "a", encoding="utf-8") as out:
+                    out.write(event["type"] + "\\n")
+            """))
+        plugin = os.path.join(self.home, "plugin.mjs")
+        with open(plugin, "w", encoding="utf-8") as f:
+            f.write(opencode.content(types.SimpleNamespace(python=sys.executable, app=app)))
+        driver = os.path.join(self.home, "driver.mjs")
+        with open(driver, "w", encoding="utf-8") as f:
+            f.write(textwrap.dedent(f"""
+                import {{ Perturbation }} from {json.dumps(Path(plugin).as_uri())};
+                const hooks = await Perturbation({{}});
+                await hooks.event({{ event: {{ type: "session.status", properties: {{ sessionID: "s1", status: {{ type: "idle" }} }} }} }});
+                await hooks.event({{ event: {{ type: "session.idle", properties: {{ sessionID: "s1" }} }} }});
+                await hooks.event({{ event: {{ type: "file.edited", properties: {{ sessionID: "s1" }} }} }});
+                await hooks.dispose();
+            """))
+        subprocess.run([NODE, driver], check=True, timeout=60)
+        with open(log, encoding="utf-8") as f:
+            self.assertEqual(f.read().split(), ["session.status", "session.idle", "perturbation.shutdown"])
+
+
 class OpencodeParseTest(IsolatedTestCase):
     def test_session_lifecycle(self):
         created = opencode.parse(None, event("session.created", info={"id": "s1", "directory": "/work/project"}))
@@ -62,7 +103,7 @@ class OpencodeParseTest(IsolatedTestCase):
         self.assertIsNone(opencode.parse(None, event("session.created", info={"id": "s2", "parentID": "s1"})))
         self.assertEqual(opencode.parse(None, event("session.status", sessionID="s1", status={"type": "busy"})).state, "busy")
         self.assertEqual(opencode.parse(None, event("session.status", sessionID="s1", status={"type": "retry"})).state, "busy")
-        self.assertEqual(opencode.parse(None, event("session.status", sessionID="s1", status={"type": "idle"})).notice, None)
+        self.assertEqual(opencode.parse(None, event("session.status", sessionID="s1", status={"type": "idle"})).notice, ("ready", "Task finished"))
         self.assertIsNone(opencode.parse(None, event("session.status", sessionID="s1", status={"type": "new"})))
         idle = opencode.parse(None, event("session.idle", sessionID="s1"))
         self.assertEqual((idle.state, idle.notice), ("ready", ("ready", "Task finished")))
