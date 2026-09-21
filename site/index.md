@@ -152,4 +152,4 @@ Every hook command exits 0 and prints nothing, even when Python or the app is mi
 
 ---
 
-Perturbation 1.2.0 · [MIT](https://github.com/Tpojka/perturbation/blob/main/LICENSE) © 2026 Goran Grbic · An independent project, not affiliated with Anthropic, OpenAI, GitHub or Google.
+Perturbation 1.2.1 · [MIT](https://github.com/Tpojka/perturbation/blob/main/LICENSE) © 2026 Goran Grbic · An independent project, not affiliated with Anthropic, OpenAI, GitHub or Google.

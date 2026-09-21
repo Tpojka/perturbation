@@ -3,7 +3,9 @@
 All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.2.1] - 2026-09-21
+
+Notifications arrive once, and only when they are news, for every agent. Found by testing Claude Code, opencode and Antigravity side by side.
 
 ### Fixed
 
@@ -70,6 +72,7 @@ The first release. It replaces four shipped projects, one per agent, with one re
 - Notifications are sent only when a session's stored state changes, for every agent. The predecessors notified on every qualifying event.
 - Its own identifiers: native host `com.tpojka.perturbation`, extension ID `jbibmafopagpblieglanmabkegglkpgo`, data directory `Perturbation`, app `perturbation.pyz`, config marker `perturbation.pyz`, env vars `PERTURBATION_*`.
 
+[1.2.1]: https://github.com/Tpojka/perturbation/releases/tag/v1.2.1
 [1.2.0]: https://github.com/Tpojka/perturbation/releases/tag/v1.2.0
 [1.1.0]: https://github.com/Tpojka/perturbation/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Tpojka/perturbation/releases/tag/v1.0.0
