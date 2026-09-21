@@ -4,7 +4,10 @@ Files live at <data>/sessions/<agent_id>/<session_id> and hold one word: busy, w
 the session's project name on a second line when a hook has learnt it (not every event carries it).
 """
 import os
+import sys
+import threading
 import time
+from contextlib import contextmanager
 
 from . import paths
 
@@ -31,7 +34,8 @@ def path(agent_id, session_id):
 def set_state(agent_id, session_id, value, project=None):
     target = path(agent_id, session_id)
     target.parent.mkdir(parents=True, exist_ok=True)
-    tmp = target.with_name(target.name + ".tmp")
+    # A name of its own per writer, so two hooks writing at once can't rename each other's file.
+    tmp = target.with_name(f"{target.name}.{os.getpid()}.{threading.get_ident()}.tmp")
     tmp.write_text(value + (f"\n{project}" if project else ""), encoding="utf-8")
     os.replace(tmp, target)  # atomic, so the host never reads a half-written file
 
@@ -64,6 +68,38 @@ def clear(agent_id, session_id):
         path(agent_id, session_id).unlink()
     except FileNotFoundError:
         pass
+
+
+@contextmanager
+def locked(agent_id):
+    """Hold an exclusive lock for one agent while a hook reads, decides and writes.
+
+    Some agents run two hooks at the same moment for one turn (opencode's two idle events, Antigravity's
+    Stop hook and status line). Without the lock both read the same old state: one hides the other's
+    notification, or both notify. The lock lives beside the sessions, never among them, and the OS
+    releases it if a hook is killed.
+    """
+    path = paths.data_dir() / "locks" / f"{_safe(agent_id)}.lock"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a+b") as handle:
+        if sys.platform == "win32":
+            import msvcrt
+
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)  # retries for about 10 s, then raises
+            try:
+                yield
+            finally:
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 def sessions(agent_id, now=None):

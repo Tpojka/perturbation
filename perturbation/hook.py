@@ -41,16 +41,36 @@ def main(argv=None):
 
 
 def apply(adapter, update):
-    """Record the update and notify only when the session's stored state actually changed."""
-    previous = state.current(adapter.ID, update.session_id)
-    if update.state is None:
-        state.clear(adapter.ID, update.session_id)
-        return
-    # Not every event names the project (Goose's Stop, opencode's idle), so the last one seen is kept.
-    project = update.project or state.project(adapter.ID, update.session_id)
-    state.set_state(adapter.ID, update.session_id, update.state, project)
-    if update.notice and (previous is None or previous[0] != update.state):
-        _notify(adapter, update._replace(project=project))
+    """Record the update, and notify only when it is news: see `worth_notifying`.
+
+    Everything happens under the agent's lock, so two hooks for the same turn can't both read the old
+    state and both notify, or hide each other's notice.
+    """
+    with state.locked(adapter.ID):
+        previous = state.current(adapter.ID, update.session_id)
+        if update.state is None:
+            state.clear(adapter.ID, update.session_id)
+            return
+        # Not every event names the project (Goose's Stop, opencode's idle), so the last one seen is kept.
+        project = update.project or state.project(adapter.ID, update.session_id)
+        state.set_state(adapter.ID, update.session_id, update.state, project)
+        if update.notice and worth_notifying(update, previous[0] if previous else None):
+            _notify(adapter, update._replace(project=project))
+
+
+def worth_notifying(update, before):
+    """True when the stored state really changes, and an ending ("is ready", "stopped") follows real work.
+
+    Two events often describe one ending (opencode's status and idle events, Antigravity's Stop hook and
+    status line, Copilot's error and Stop). The first one to arrive notifies; the rest find nothing new.
+    An ending never announces itself without a busy or waiting session before it, so a status line that
+    starts idle stays quiet.
+    """
+    if before == update.state:
+        return False
+    if update.notice.kind in (READY, STOPPED):
+        return before in (state.BUSY, state.WAITING)
+    return True
 
 
 def _notify(adapter, update):

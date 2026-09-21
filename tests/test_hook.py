@@ -1,7 +1,9 @@
 import json
+import threading
+import time
 from unittest import mock
 
-from perturbation import config, hook, paths, state
+from perturbation import agents, config, hook, paths, state
 from perturbation.agents import codex
 from perturbation.agents.base import NEEDS_YOU, READY, Notice, Update
 from tests.support import IsolatedTestCase, stdin
@@ -54,22 +56,30 @@ class HookTest(IsolatedTestCase):
         self.assertEqual(send_.call_count, 2)
 
     @mock.patch("perturbation.notify.send")
-    def test_a_first_event_after_install_notifies(self, send_):
+    def test_an_ending_needs_work_before_it(self, send_):
         config.save({"notifications": True})
-        claude("Stop")  # no session file yet, still a transition into ready
+        claude("Stop")  # nothing was running, so there is nothing to announce
+        claude("StopFailure", error_type="rate_limit")
+        send_.assert_not_called()
+        self.assertEqual(state.current("claude", "s1")[0], "ready")
+        claude("Notification", notification_type="permission_prompt", message="Allow?")  # needs you is always news
         self.assertEqual(send_.call_count, 1)
+        claude("Stop")  # waiting counts as work in progress
+        self.assertEqual(send_.call_args.args[0], "Claude is ready · project")
 
     @mock.patch("perturbation.notify.send")
     def test_muted_agents_stay_quiet(self, send_):
         config.save({"notifications": True, "mute": {"claude": True}})
         claude("Stop")
         send_.assert_not_called()
+        send("codex", {"hook_event_name": "UserPromptSubmit", "session_id": "s1"})
         send("codex", {"hook_event_name": "Stop", "session_id": "s1"})
         self.assertEqual(send_.call_args.args[0], "Codex is ready")
 
     @mock.patch("perturbation.notify.send")
     def test_sound_setting_and_non_ascii_project(self, send_):
         config.save({"notifications": True, "sound": False})
+        claude("UserPromptSubmit", cwd="/work/Đurđevac")
         claude("Stop", cwd="/work/Đurđevac")
         self.assertEqual(send_.call_args.args[0], "Claude is ready · Đurđevac")
         self.assertFalse(send_.call_args.kwargs["sound"])
@@ -93,6 +103,36 @@ class HookTest(IsolatedTestCase):
         self.assertEqual(Update.from_json(json.loads(json.dumps(update.to_json()))), update)
         plain = Update("s1", None)
         self.assertEqual(Update.from_json(json.loads(json.dumps(plain.to_json()))), plain)
+
+
+class SimultaneousHooksTest(IsolatedTestCase):
+    """Some agents run two hooks for one ending at the same moment. They must take turns."""
+
+    @mock.patch("perturbation.notify.send")
+    def test_one_ending_reported_by_several_hooks_at_once_notifies_once(self, send_):
+        config.save({"notifications": True})
+        adapter = agents.get("opencode")
+        hook.apply(adapter, Update("s1", state.BUSY))
+        real_set_state = state.set_state
+
+        def slow_set_state(*args, **kwargs):
+            time.sleep(0.05)  # widen the gap between reading and writing, where the race lives
+            return real_set_state(*args, **kwargs)
+
+        ending = Update("s1", state.READY, Notice(READY, "Task finished"))
+        with mock.patch("perturbation.state.set_state", side_effect=slow_set_state):
+            threads = [threading.Thread(target=hook.apply, args=(adapter, ending)) for _ in range(4)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+        self.assertEqual(send_.call_count, 1)
+        self.assertEqual(state.current("opencode", "s1")[0], "ready")
+
+    def test_the_lock_is_kept_out_of_the_sessions(self):
+        hook.apply(agents.get("claude"), Update("s1", state.BUSY))
+        self.assertEqual(state.summary("claude")["total"], 1)
+        self.assertTrue((paths.data_dir() / "locks" / "claude.lock").exists())
 
 
 class DeferredUpdateTest(IsolatedTestCase):
