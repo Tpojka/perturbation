@@ -3,6 +3,15 @@
 All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.2.2] - 2026-09-21
+
+One fix, for a false "Codex needs you" that timing could trigger. Found by CI on Windows.
+
+### Fixed
+
+- **An already answered Codex permission request no longer raises a false alarm.** Codex asks for permission before it decides whether to grant it itself, so Perturbation waits 5 seconds before saying "Codex needs you", and drops the reminder if the session changed in the meantime. It used to judge that by the session file's modification time. Windows advances file times in steps of about 15.6 ms, and Linux in steps of a few milliseconds, so two writes close together could look like no change at all. The reminder then fired anyway: a "Codex needs you" notification, and an amber lamp until Codex's next event. Every state write now stores a random marker, and the reminder compares the marker instead. In daily use the timing was rarely that tight, but the check no longer depends on it.
+- **Session files from earlier versions keep working.** A file without a marker falls back to its modification time until the next write adds one, so upgrading needs no clean-up.
+
 ## [1.2.1] - 2026-09-21
 
 Notifications arrive once, and only when they are news, for every agent. Found by testing Claude Code, opencode and Antigravity side by side.
@@ -72,6 +81,7 @@ The first release. It replaces four shipped projects, one per agent, with one re
 - Notifications are sent only when a session's stored state changes, for every agent. The predecessors notified on every qualifying event.
 - Its own identifiers: native host `com.tpojka.perturbation`, extension ID `jbibmafopagpblieglanmabkegglkpgo`, data directory `Perturbation`, app `perturbation.pyz`, config marker `perturbation.pyz`, env vars `PERTURBATION_*`.
 
+[1.2.2]: https://github.com/Tpojka/perturbation/releases/tag/v1.2.2
 [1.2.1]: https://github.com/Tpojka/perturbation/releases/tag/v1.2.1
 [1.2.0]: https://github.com/Tpojka/perturbation/releases/tag/v1.2.0
 [1.1.0]: https://github.com/Tpojka/perturbation/releases/tag/v1.1.0
