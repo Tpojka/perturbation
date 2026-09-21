@@ -93,7 +93,7 @@ def defer(adapter, update):
     permission prompt within the delay never turns the lamp amber.
     """
     current = state.current(adapter.ID, update.session_id)
-    stamp = current[1] if current else 0
+    stamp = current[1] if current else ""
     command = [sys.executable, str(paths.app_file()), "remind", adapter.ID, str(stamp), json.dumps(update.to_json())]
     quiet = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
     if sys.platform == "win32":
@@ -103,11 +103,11 @@ def defer(adapter, update):
 
 
 def remind_main(argv):
-    """argv: [<agent id>, <mtime stamp>, <update as JSON>]. Runs detached, with nobody to report to."""
+    """argv: [<agent id>, <state marker>, <update as JSON>]. Runs detached, with nobody to report to."""
     try:
         adapter = agents.get(argv[0])
         update = Update.from_json(json.loads(argv[2]))
-        remind(adapter, int(argv[1]), update)
+        remind(adapter, argv[1], update)
     except Exception:
         pass
 
@@ -115,7 +115,7 @@ def remind_main(argv):
 def remind(adapter, stamp, update):
     time.sleep(update.delay)
     current = state.current(adapter.ID, update.session_id)
-    if (current[1] if current else 0) == stamp:
+    if (current[1] if current else "") == stamp:
         apply(adapter, update._replace(delay=0))
 
 

@@ -179,6 +179,18 @@ class DeferredUpdateTest(IsolatedTestCase):
         self.assertEqual(state.current("codex", "s1")[0], "ready")
         send_.assert_not_called()
 
+    @mock.patch("perturbation.notify.send")
+    @mock.patch("perturbation.hook.time.sleep")
+    def test_a_change_to_the_same_state_still_cancels_the_reminder(self, sleep, send_):
+        # Codex moved on and came back to busy within microseconds: same word, different write.
+        config.save({"notifications": True})
+        send("codex", {"hook_event_name": "UserPromptSubmit", "session_id": "s1"})
+        argv = self.request()
+        send("codex", {"hook_event_name": "PostToolUse", "session_id": "s1"})
+        hook.remind_main(argv[3:])
+        self.assertEqual(state.current("codex", "s1")[0], "busy")
+        send_.assert_not_called()
+
     @mock.patch("perturbation.hook.time.sleep")
     def test_reminder_garbage_is_harmless(self, sleep):
         hook.remind_main(["codex", "x", "{"])

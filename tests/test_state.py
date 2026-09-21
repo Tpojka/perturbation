@@ -34,7 +34,28 @@ class StateTest(IsolatedTestCase):
         state.set_state("claude", "a", state.WAITING)
         value, stamp = state.current("claude", "a")
         self.assertEqual(value, state.WAITING)
-        self.assertIsInstance(stamp, int)
+        self.assertIsInstance(stamp, str)
+
+    def test_every_write_changes_the_marker_however_close_together(self):
+        # File times can't tell these apart on Windows (15.6 ms steps) or often on Linux; the marker can.
+        markers = set()
+        for _ in range(50):
+            state.set_state("codex", "a", state.BUSY, "project")
+            markers.add(state.current("codex", "a")[1])
+        self.assertEqual(len(markers), 50)
+        self.assertEqual(state.project("codex", "a"), "project")
+
+    def test_files_from_before_the_marker_still_read(self):
+        # 1.2.1 and earlier wrote the state and, sometimes, the project; nothing else.
+        target = state.path("claude", "old")
+        target.parent.mkdir(parents=True)
+        target.write_text("busy\nproject", encoding="utf-8")
+        value, marker = state.current("claude", "old")
+        self.assertEqual((value, state.project("claude", "old")), ("busy", "project"))
+        self.assertTrue(marker.startswith("mtime:"))
+        target.write_text("ready", encoding="utf-8")
+        self.assertEqual((state.current("claude", "old")[0], state.project("claude", "old")), ("ready", None))
+        self.assertEqual(state.summary("claude")["total"], 1)
 
     def test_the_project_name_is_kept_beside_the_state(self):
         state.set_state("claude", "a", state.BUSY, "project")

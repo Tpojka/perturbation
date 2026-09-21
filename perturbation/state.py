@@ -1,7 +1,12 @@
 """Per-agent, per-session state: hooks write one file per session, the host sums them up per agent.
 
-Files live at <data>/sessions/<agent_id>/<session_id> and hold one word: busy, waiting or ready, with
-the session's project name on a second line when a hook has learnt it (not every event carries it).
+Files live at <data>/sessions/<agent_id>/<session_id> and hold three lines: the state (busy, waiting
+or ready), the session's project name when a hook has learnt it (not every event carries it, so it may
+be empty), and a random marker that is new on every write.
+
+The marker is how a deferred update tells whether the session changed while it waited. The file's
+modification time can't: Windows advances it in steps of about 15.6 ms and Linux in steps of a few
+milliseconds, so two writes close together often get the same time.
 """
 import os
 import sys
@@ -36,18 +41,23 @@ def set_state(agent_id, session_id, value, project=None):
     target.parent.mkdir(parents=True, exist_ok=True)
     # A name of its own per writer, so two hooks writing at once can't rename each other's file.
     tmp = target.with_name(f"{target.name}.{os.getpid()}.{threading.get_ident()}.tmp")
-    tmp.write_text(value + (f"\n{project}" if project else ""), encoding="utf-8")
+    tmp.write_text(f"{value}\n{project or ''}\n{os.urandom(8).hex()}", encoding="utf-8")
     os.replace(tmp, target)  # atomic, so the host never reads a half-written file
 
 
 def _read(agent_id, session_id):
     target = path(agent_id, session_id)
     lines = target.read_text(encoding="utf-8").splitlines()
-    return lines[0].strip() if lines else "", lines[1].strip() if len(lines) > 1 else None, target.stat().st_mtime_ns
+    value = lines[0].strip() if lines else ""
+    project = lines[1].strip() if len(lines) > 1 else ""
+    # Files written before 1.2.2 have no marker; their modification time is the best stand-in.
+    marker = lines[2].strip() if len(lines) > 2 else f"mtime:{target.stat().st_mtime_ns}"
+    return value, project or None, marker
 
 
 def current(agent_id, session_id):
-    """(state, mtime_ns) of a session, or None. The mtime tells whether it changed since."""
+    """(state, marker) of a session, or None. The marker changes on every write, so comparing it tells
+    whether the session changed since, however close together the writes were."""
     try:
         value, _, stamp = _read(agent_id, session_id)
         return value, stamp
