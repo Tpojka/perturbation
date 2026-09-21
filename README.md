@@ -2,6 +2,8 @@
 
 One Chrome toolbar lamp for every coding agent on your machine, with optional desktop notifications. It answers one question at a glance: **is any agent busy, and how many sessions are occupied?** It works on macOS, Ubuntu/Linux and Windows.
 
+Website: <https://perturbation.tpojka.com>
+
 | Lamp | Meaning |
 | --- | --- |
 | <img src="extension/icons/lamp-red-48.png" width="24"> **Red, with a number** | Perturbed: at least one agent is working. The badge counts the sessions that are busy |
