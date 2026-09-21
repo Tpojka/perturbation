@@ -153,11 +153,15 @@ def statusline(payload):
     workspace = payload.get("workspace")
     current_dir = workspace.get("current_dir") if isinstance(workspace, dict) else None
     project = project_of(current_dir, payload.get("cwd"), os.getcwd())
+    agent_state = payload.get("agent_state")
     if payload.get("tool_confirmation_pending"):
         update = Update(session, WAITING, Notice(NEEDS_YOU, "Waiting for your confirmation"), project)
+    elif agent_state == "idle":
+        # The Stop hook reports the same ending; whichever is recorded first notifies. A session that
+        # starts idle has no work behind it, so it stays quiet (see hook.worth_notifying).
+        update = Update(session, READY, Notice(READY, "Task finished"), project)
     else:
-        # "ready" belongs to the Stop hook, which already notifies for it, so no notice here.
-        update = Update(session, AGENT_STATES.get(payload.get("agent_state"), READY), project=project)
+        update = Update(session, AGENT_STATES.get(agent_state, READY), project=project)
     return update, LABELS[update.state]
 
 

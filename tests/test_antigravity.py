@@ -127,7 +127,9 @@ class AntigravityParseTest(IsolatedTestCase):
         for agent_state in ("thinking", "working", "tool_use"):
             update, text = antigravity.statusline({**base, "agent_state": agent_state})
             self.assertEqual((update.state, text), ("busy", "working"))
-        for agent_state in ("idle", "initializing", "something-new"):
+        update, text = antigravity.statusline({**base, "agent_state": "idle"})
+        self.assertEqual((update.state, update.notice, text), ("ready", ("ready", "Task finished"), "ready"))
+        for agent_state in ("initializing", "something-new"):
             update, text = antigravity.statusline({**base, "agent_state": agent_state})
             self.assertEqual((update.state, update.notice, text), ("ready", None, "ready"))
         update, text = antigravity.statusline({**base, "agent_state": "tool_use", "tool_confirmation_pending": True})

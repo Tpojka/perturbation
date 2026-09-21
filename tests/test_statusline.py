@@ -2,7 +2,7 @@ import io
 import json
 from unittest import mock
 
-from perturbation import config, state, statusline
+from perturbation import config, hook, state, statusline
 from tests.support import IsolatedTestCase, stdin
 
 # The shape of the payload Antigravity pipes to a status line script, trimmed to the fields we read.
@@ -62,11 +62,16 @@ class StatusLineTest(IsolatedTestCase):
         self.assertEqual(send.call_count, 2)
 
     @mock.patch("perturbation.notify.send")
-    def test_ready_is_left_to_the_stop_hook(self, send):
+    def test_the_end_of_a_turn_notifies_once_whether_the_status_line_or_the_stop_hook_is_first(self, send):
         config.save({"notifications": True})
+        self.send(agent_state="idle")  # a fresh session starts idle: nothing has run, nothing to announce
+        send.assert_not_called()
         self.send(agent_state="working")
         self.send(agent_state="idle")
-        send.assert_not_called()
+        self.assertEqual(send.call_args.args[:2], ("Antigravity is ready · project", "Task finished"))
+        with mock.patch("sys.stdin", stdin(json.dumps({"conversationId": PAYLOAD["conversation_id"], "fullyIdle": True}))):
+            hook.main(["antigravity", "stop"])  # the Stop hook reports the same ending
+        self.assertEqual(send.call_count, 1)
 
     @mock.patch("perturbation.notify.send", side_effect=OSError("no notifier"))
     def test_a_failing_notifier_still_prints_the_line(self, send):
