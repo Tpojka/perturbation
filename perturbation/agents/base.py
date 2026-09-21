@@ -8,7 +8,7 @@ A module is an adapter when it has these attributes (checked by the registry on 
     SHORT    = "Codex"           notification titles: "Codex is ready · project"
     SHAPE    = "config"          "config": we write entries into its hooks file; "plugin": we drop a plugin file
     ORDER    = 2                 default position in the popup and the installer
-    TIER     = "pro"             "pro": a paid agent, always listed; "free": free-tier, folded in the installer
+    TIER     = "pro"             "pro": a paid agent; "free": a free-tier one, listed after the pro tier
 
     def detect() -> Optional[str]
         What was found when the agent looks installed ("~/.codex", "codex on PATH"), else None.

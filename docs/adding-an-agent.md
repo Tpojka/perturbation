@@ -23,7 +23,7 @@ NAME     = "Goose"          # shown in the popup and the installer
 SHORT    = "Goose"          # notification titles: "Goose is ready · project"
 SHAPE    = "config"         # "config" (entries in its hooks file) or "plugin" (a plugin file of ours)
 ORDER    = 6                # default position in the popup and the installer
-TIER     = "free"           # "pro" is always listed; "free" is folded behind "more" in the installer
+TIER     = "free"           # "pro" or "free"; the installer lists free-tier agents after the pro-tier ones
 
 def detect() -> Optional[str]                  # "found ~/.config/goose", or None
 def per_event_commands() -> bool               # True when the payload carries no event name
