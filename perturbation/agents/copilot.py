@@ -6,7 +6,7 @@ only our hooks, so there is nothing to merge with and nothing to back up.
 import shutil
 
 from . import jsonfile
-from .base import BUSY, CONFIG, MARKER, PRO, NEEDS_YOU, READY, WAITING, Check, Notice, Update, describe, home, project_of, session_id
+from .base import BUSY, CONFIG, MARKER, PRO, NEEDS_YOU, READY, STOPPED, WAITING, Check, Notice, Update, describe, home, project_of, session_id
 
 ID = "copilot"
 NAME = "GitHub Copilot CLI"
@@ -105,12 +105,22 @@ def parse(event, payload):
         return Update(session, WAITING, Notice(NEEDS_YOU, payload.get("message") or "Copilot is waiting for you"), project)
     if event == "ErrorOccurred":
         # Copilot retries recoverable errors. Any other error ends the turn, possibly without a Stop.
-        return Update(session, READY, project=project) if payload.get("recoverable") is False else None
+        if payload.get("recoverable") is not False:
+            return None
+        return Update(session, READY, Notice(STOPPED, _error(payload)), project)
     if event == "Stop":
         return Update(session, READY, Notice(READY, "Task finished"), project)
     if event == "SessionEnd":
         return Update(session, None)
     return None
+
+
+def _error(payload):
+    error = payload.get("error")
+    if isinstance(error, dict):
+        name, message = error.get("name"), error.get("message")
+        return f"{name}: {message}" if name and message else str(message or name or "error")
+    return str(error or payload.get("message") or "error")
 
 
 def doctor(commands):

@@ -75,6 +75,8 @@ class CopilotParseTest(IsolatedTestCase):
         self.assertEqual(update.session_id, "xyz")
 
     def test_unrecoverable_errors_end_the_turn(self):
-        self.assertEqual(self.parse("ErrorOccurred", recoverable=False).state, "ready")
+        failed = self.parse("ErrorOccurred", recoverable=False, error={"name": "RateLimitError", "message": "Too many requests"})
+        self.assertEqual((failed.state, failed.notice), ("ready", ("stopped", "RateLimitError: Too many requests")))
+        self.assertEqual(self.parse("ErrorOccurred", recoverable=False).notice.message, "error")
         self.assertIsNone(self.parse("ErrorOccurred", recoverable=True))
         self.assertIsNone(self.parse("ErrorOccurred"))
