@@ -3,6 +3,12 @@
 All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- The extension's details page in Chrome links to the website, https://perturbation.tpojka.com, through `homepage_url` in its manifest.
+
 ## [1.2.0] - 2026-09-21
 
 The installer's agent picker shows every agent at once.
