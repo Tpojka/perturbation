@@ -3,11 +3,15 @@
 All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.2.0] - 2026-09-21
+
+The installer's agent picker shows every agent at once.
 
 ### Changed
 
-- The installer's picker lists all seven agents alike, the free-tier ones after the pro-tier ones. Nothing is folded behind a "more" row any more; `AgentMenu(..., fold_free=True)` keeps that behaviour available.
+- **All seven agents are listed alike.** The free-tier agents (opencode, Goose, Qwen Code) get the same rows as the pro-tier ones, numbered 5 to 7 after them, so number keys 1-7, the arrow keys and Space reach every agent without first unfolding anything. The `+` row and its key are gone from the default picker; `AgentMenu(..., fold_free=True)` keeps the folded layout available.
+- `a` now checks all seven agents, since all seven are shown.
+- The adapter guide and the contract docstring describe `TIER` as it now behaves: it orders the list, it no longer hides anything.
 
 ## [1.1.0] - 2026-09-20
 
@@ -50,5 +54,6 @@ The first release. It replaces four shipped projects, one per agent, with one re
 - Notifications are sent only when a session's stored state changes, for every agent. The predecessors notified on every qualifying event.
 - Its own identifiers: native host `com.tpojka.perturbation`, extension ID `jbibmafopagpblieglanmabkegglkpgo`, data directory `Perturbation`, app `perturbation.pyz`, config marker `perturbation.pyz`, env vars `PERTURBATION_*`.
 
+[1.2.0]: https://github.com/Tpojka/perturbation/releases/tag/v1.2.0
 [1.1.0]: https://github.com/Tpojka/perturbation/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Tpojka/perturbation/releases/tag/v1.0.0
