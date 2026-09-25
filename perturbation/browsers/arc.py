@@ -9,4 +9,5 @@ FAMILY = CHROMIUM
 PROFILE = {"darwin": "Arc/User Data"}
 APPS = {"darwin": ("Arc.app",)}
 KEY = None
+PROCESS = ("Arc.app",)  # how this browser looks in a process list, matched case-insensitively
 PAGE = "arc://extensions"

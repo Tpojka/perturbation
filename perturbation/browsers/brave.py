@@ -9,4 +9,5 @@ FAMILY = CHROMIUM
 PROFILE = {"darwin": "BraveSoftware/Brave-Browser", "linux": "BraveSoftware/Brave-Browser", "win32": "BraveSoftware/Brave-Browser/User Data"}
 APPS = {"darwin": ("Brave Browser.app",), "linux": ("brave-browser", "brave-browser-stable", "brave"), "win32": ("brave.exe",)}
 KEY = r"Software\BraveSoftware\Brave-Browser\NativeMessagingHosts"
+PROCESS = ("Brave Browser", "brave.com/brave", "brave-browser", "brave.exe")  # how this browser looks in a process list, matched case-insensitively
 PAGE = "brave://extensions"

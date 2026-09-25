@@ -54,11 +54,18 @@ def read_json(path):
 
 
 AGENT_BINARIES = ("claude", "codex", "copilot", "agy", "opencode", "goose", "qwen")
+# The CI runners really do have Chrome and Edge, and a developer's machine has more, so detection has to
+# be blind to the machine as well: a test decides what is installed.
+BROWSER_BINARIES = (
+    "google-chrome", "google-chrome-stable", "microsoft-edge", "microsoft-edge-stable",
+    "brave-browser", "brave-browser-stable", "brave", "opera", "opera-stable", "vivaldi",
+    "vivaldi-stable", "chromium", "chromium-browser",
+)
 _real_which = shutil.which
 
 
 def _no_agents(name, *args, **kwargs):
-    return None if name in AGENT_BINARIES else _real_which(name, *args, **kwargs)
+    return None if name in AGENT_BINARIES + BROWSER_BINARIES else _real_which(name, *args, **kwargs)
 
 
 class IsolatedTestCase(unittest.TestCase):
@@ -86,10 +93,14 @@ class IsolatedTestCase(unittest.TestCase):
         which = mock.patch("shutil.which", side_effect=_no_agents)
         which.start()
         self.addCleanup(which.stop)
-        # /Applications is outside the temporary home, so browser detection is pointed inside it too.
+        # /Applications, PATH and the registry are the machine's: browser detection is pointed at the
+        # temporary home on macOS, hidden from PATH on Linux (above) and from App Paths on Windows.
         apps = mock.patch("perturbation.browsers.base.app_dirs", return_value=[Path(self.home) / "Applications"])
         apps.start()
         self.addCleanup(apps.stop)
+        windows_apps = mock.patch("perturbation.browsers.base._windows_app", return_value=None)
+        windows_apps.start()
+        self.addCleanup(windows_apps.stop)
         # The process table is the machine's, not the test's: no test may see a browser that is really running.
         hosts = mock.patch("perturbation.browsers.base.running_hosts", return_value=[])
         hosts.start()

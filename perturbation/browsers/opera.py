@@ -12,4 +12,5 @@ FAMILY = CHROMIUM
 PROFILE = {"darwin": "com.operasoftware.Opera", "linux": "opera"}
 APPS = {"darwin": ("Opera.app",), "linux": ("opera", "opera-stable"), "win32": ("opera.exe", "launcher.exe")}
 KEY = r"Software\Opera Software\NativeMessagingHosts"
+PROCESS = ("Opera.app", "/opera/opera", "opera.exe")  # how this browser looks in a process list, matched case-insensitively
 PAGE = "opera://extensions"

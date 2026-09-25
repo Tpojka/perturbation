@@ -11,6 +11,9 @@ A module is a browser adapter when it has these attributes (checked by the regis
                                  is missing from the mapping has no build of this browser
     APPS    = {...}              what detect() looks for: a bundle in /Applications on macOS, a
                                  command on PATH on Linux, an App Paths entry on Windows
+    PROCESS = (...)              substrings that identify the browser in a process list, on any OS.
+                                 They are not the APPS names: a Linux Chrome runs as
+                                 /opt/google/chrome/chrome, never as google-chrome
     KEY     = r"Software\\..."    the Windows registry key that holds native hosts, or None
     PAGE    = "brave://extensions"   where the user loads the unpacked extension
 
@@ -35,7 +38,7 @@ from ..agents.base import describe
 
 CHROMIUM = "chromium"
 
-REQUIRED = ("ID", "NAME", "ORDER", "FAMILY", "PROFILE", "APPS", "KEY", "PAGE")
+REQUIRED = ("ID", "NAME", "ORDER", "FAMILY", "PROFILE", "APPS", "PROCESS", "KEY", "PAGE")
 
 HOSTS_DIR = "NativeMessagingHosts"
 
@@ -224,16 +227,20 @@ def unregister(module, host_name=HOST_NAME):
 
 
 def owner(command):
-    """The browser whose command line this is, or None. The longest name wins, so "Google Chrome" is
-    not mistaken for Chromium and "Brave Browser" is not mistaken for anything."""
+    """The browser whose process command line this is, or None.
+
+    Every browser's PROCESS patterns are tried, whatever the OS, and the longest match wins, so a path
+    fragment beats a bare name and "Google Chrome" is never taken for Chromium.
+    """
     from . import known
 
+    text = command.lower()
     best = None
     for module in known():
-        for name in module.APPS.get(sys.platform, ()):
-            stem = name[:-4] if name.endswith(".app") else name
-            if stem in command and (best is None or len(stem) > len(best[1])):
-                best = (module, stem)
+        for pattern in module.PROCESS:
+            needle = pattern.lower()
+            if needle in text and (best is None or len(needle) > len(best[1])):
+                best = (module, needle)
     return best[0] if best else None
 
 

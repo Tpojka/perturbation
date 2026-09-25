@@ -8,4 +8,5 @@ FAMILY = CHROMIUM
 PROFILE = {"darwin": "Microsoft Edge", "linux": "microsoft-edge", "win32": "Microsoft/Edge/User Data"}
 APPS = {"darwin": ("Microsoft Edge.app",), "linux": ("microsoft-edge", "microsoft-edge-stable"), "win32": ("msedge.exe",)}
 KEY = r"Software\Microsoft\Edge\NativeMessagingHosts"
+PROCESS = ("Microsoft Edge", "microsoft/msedge", "msedge")  # how this browser looks in a process list, matched case-insensitively
 PAGE = "edge://extensions"

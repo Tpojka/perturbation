@@ -12,4 +12,5 @@ FAMILY = CHROMIUM
 PROFILE = {"darwin": "Chromium", "linux": "chromium", "win32": "Chromium/User Data"}
 APPS = {"darwin": ("Chromium.app",), "linux": ("chromium", "chromium-browser"), "win32": ("chromium.exe",)}
 KEY = r"Software\Chromium\NativeMessagingHosts"
+PROCESS = ("Chromium",)  # how this browser looks in a process list, matched case-insensitively
 PAGE = "chrome://extensions"

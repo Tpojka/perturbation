@@ -13,6 +13,7 @@ ORDER   = 3                  # position in the installer's list
 FAMILY  = CHROMIUM           # the native-messaging dialect it speaks
 PROFILE = {"darwin": "BraveSoftware/Brave-Browser", "linux": "BraveSoftware/Brave-Browser", "win32": "BraveSoftware/Brave-Browser/User Data"}
 APPS    = {"darwin": ("Brave Browser.app",), "linux": ("brave-browser", "brave"), "win32": ("brave.exe",)}
+PROCESS = ("Brave Browser", "brave.com/brave", "brave-browser", "brave.exe")
 KEY     = r"Software\BraveSoftware\Brave-Browser\NativeMessagingHosts"
 PAGE    = "brave://extensions"
 ```
@@ -20,6 +21,7 @@ PAGE    = "brave://extensions"
 - `PROFILE` is relative to `base.root()`: `~/Library/Application Support` on macOS, `$XDG_CONFIG_HOME` (or `~/.config`) on Linux, `%LOCALAPPDATA%` on Windows. Leave a platform out when the browser has no build for it, or when it keeps its data somewhere else entirely — Opera on Windows does, and is then found by `APPS` alone.
 - The manifest folder is always `<PROFILE>/NativeMessagingHosts` on macOS and Linux. There is no per-browser exception; Arc's extra `User Data` level lives in its `PROFILE`.
 - `KEY` is the Windows registry key under `HKEY_CURRENT_USER`, where the manifest is one shared file in our data directory and each browser gets a value pointing at it. `None` means the browser can't be registered on Windows.
+- `PROCESS` is how a running host's parent is recognised, on any OS, matched case-insensitively with the longest match winning. These are not the `APPS` names: a Linux Chrome runs as `/opt/google/chrome/chrome`, never as `google-chrome`. Take the patterns from a real `ps` line, not from the launcher's name.
 - `APPS` is how `detect()` finds the browser itself: a bundle under `/Applications` on macOS, a command on `PATH` on Linux, an `App Paths` registry entry on Windows. A profile folder alone is reported as `(profile only)` and left unchecked, because folders outlive uninstalls.
 
 ## 2. Register it

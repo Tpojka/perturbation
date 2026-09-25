@@ -10,11 +10,14 @@ from perturbation.browsers.base import running_hosts as real_running_hosts
 from perturbation.install import system
 from tests.support import IsolatedTestCase
 
+# A process table with both shapes a browser takes: a macOS bundle and a Linux install path.
 PS = b"""\
   100     1 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --enable-features=x
   101   100 /usr/bin/python3 /data/perturbation.pyz host chrome-extension://abc/
   200     1 /Applications/Chromium.app/Contents/MacOS/Chromium
   201   200 /usr/bin/python3 /data/perturbation.pyz host
+  250     1 /opt/brave.com/brave/brave --type=zygote
+  251   250 /usr/bin/python3 /data/perturbation.pyz host
   300   299 /usr/bin/python3 /data/perturbation.pyz host
   400     1 /usr/bin/python3 /data/perturbation.pyz hook claude
 """
@@ -60,18 +63,19 @@ class DetectionTest(IsolatedTestCase):
         self.assertEqual(install._browsers_now(), ["chrome"])
 
     def test_the_application_itself_wins(self):
+        brave = browsers.get("brave")
+        base.profile_dir(brave).mkdir(parents=True)
         if sys.platform == "darwin":
-            app = Path(self.home) / "Applications" / "Brave Browser.app"
-            app.mkdir(parents=True)
-        elif sys.platform == "linux":
+            (Path(self.home) / "Applications" / "Brave Browser.app").mkdir(parents=True)
+            self.assertNotIn("profile only", base.detect(brave))
+        elif sys.platform == "win32":
+            with mock.patch("perturbation.browsers.base._windows_app", return_value=Path(self.home) / "brave.exe"):
+                self.assertNotIn("profile only", base.detect(brave))
+        else:
             app = Path(self.home) / "brave-browser"
             app.write_text("#!/bin/sh\n")
-            mock.patch("shutil.which", side_effect=lambda n, *a, **k: str(app) if n == "brave-browser" else None).start()
-            self.addCleanup(mock.patch.stopall)
-        else:
-            return self.skipTest("Windows finds browsers through the registry")
-        base.profile_dir(browsers.get("brave")).mkdir(parents=True)
-        self.assertNotIn("profile only", base.detect(browsers.get("brave")))
+            with mock.patch("shutil.which", side_effect=lambda n, *a, **k: str(app) if n == "brave-browser" else None):
+                self.assertNotIn("profile only", base.detect(brave))
 
 
 class RegistrationTest(IsolatedTestCase):
@@ -156,9 +160,23 @@ class RunningHostsTest(IsolatedTestCase):
             return self.skipTest("the process table is not read on Windows")
         with mock.patch("subprocess.run", return_value=mock.Mock(stdout=PS)):
             found = real_running_hosts()
-        self.assertEqual(sorted((b.ID if b else "", pid) for b, pid in found), [("", 300), ("chrome", 101), ("chromium", 201)])
+        self.assertEqual(sorted((b.ID if b else "", pid) for b, pid in found), [("", 300), ("brave", 251), ("chrome", 101), ("chromium", 201)])
 
-    def test_the_longest_name_wins_so_chrome_is_not_chromium(self):
-        self.assertEqual(base.owner("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome").ID, "chrome")
-        self.assertEqual(base.owner("/Applications/Chromium.app/Contents/MacOS/Chromium").ID, "chromium")
+    def test_a_browser_is_recognised_by_its_command_line_on_any_os(self):
+        """The patterns are not the launcher names: a Linux Chrome runs as /opt/google/chrome/chrome."""
+        for command, expected in (
+            ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "chrome"),
+            ("/opt/google/chrome/chrome --type=zygote", "chrome"),
+            ("/Applications/Chromium.app/Contents/MacOS/Chromium", "chromium"),
+            ("/usr/lib/chromium/chromium", "chromium"),
+            ("/opt/brave.com/brave/brave", "brave"),
+            ("/opt/microsoft/msedge/msedge", "edge"),
+            ("/usr/lib/x86_64-linux-gnu/opera/opera", "opera"),
+            ("/opt/vivaldi/vivaldi-bin", "vivaldi"),
+            ("/Applications/Arc.app/Contents/MacOS/Arc", "arc"),
+            (r"C:\Program Files\Google\Chrome\Application\chrome.exe", "chrome"),
+        ):
+            found = base.owner(command)
+            self.assertEqual(found.ID if found else None, expected, command)
         self.assertIsNone(base.owner("/usr/bin/firefox"))
+        self.assertIsNone(base.owner("/usr/bin/python3 something"))
