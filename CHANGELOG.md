@@ -3,6 +3,32 @@
 All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-09-25
+
+Any Chromium browser, not only Chrome. The installer asks which ones, registers each separately, and takes the registration away from the ones you untick.
+
+### Added
+
+- **A browser picker in the installer.** Chrome, Edge, Brave, Opera, Vivaldi, Arc and Chromium are listed like the agents are, with the ones found on the machine pre-checked, and Space or the number keys to toggle. Non-interactively: `--browsers chrome,brave`, or `--browsers all`.
+- **`set browsers chrome,brave`**, the counterpart of `set agents`, to change the set later without touching anything else.
+- **One module per browser**, in `perturbation/browsers/`, following a contract of their own the way agents do. A new browser is one module and one line in `MODULES`; see `docs/adding-a-browser.md`.
+- **`status` and `doctor` report per browser:** which ones are registered, where, and — on macOS and Linux — which ones have actually started a host, by looking for host processes and naming their parent browser. A registration is a file; a running host is proof.
+- **The doctor names left-over registrations** from a browser you have since unticked.
+
+### Changed
+
+- **The native host is registered once per chosen browser** instead of only with Chrome. Some browsers read Chrome's folder as well — on macOS, Brave and Opera both do — but that behaviour is undocumented, differs per platform, and leans on a browser you may not have. Chrome is no longer required at all.
+- **Uninstall sweeps every browser it knows,** on every OS. It used to remove only Chrome's registry key on Windows.
+- An install from 1.2.x keeps working untouched: the first run after the upgrade takes the browsers it is already registered with as the answer.
+- The installer's closing instructions name each chosen browser's extensions page, and say to pick the `extension` folder itself — picking the folder above it is what produces "Manifest file is missing or unreadable".
+- README and the site describe browsers rather than Chrome, including where each browser reads the manifest and what each connection error means. The site footer now says when the page was last changed.
+
+### Fixed
+
+- **`config.json` is replaced in one step instead of rewritten in place.** It used to be truncated and then written, so for a sliver of time a reader saw half a file, or none of it, and fell back to the defaults. A hook reading it then skipped a notification. Worse, the popup's own writes are read-modify-write: one landing in that window would save the defaults back, losing the watched agents, the browsers, the order and every setting. With one host per browser now possible, every browser polls the file twice a second and every popup can write it, so the window was worth closing.
+- **Two popups can no longer lose each other's change.** A mute from one browser and a reorder from another are serialised by the same kind of lock the hooks use.
+- **A `config.json` that can't be read is left alone** rather than quietly replaced by the defaults on the next popup click, and the doctor reports it.
+
 ## [1.2.2] - 2026-09-21
 
 One fix, for a false "Codex needs you" that timing could trigger. Found by CI on Windows.
