@@ -25,8 +25,8 @@ DEFAULTS = {
 
 def load():
     try:
-        data = json.loads(paths.config_file().read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        data = json.loads(files.read(paths.config_file()) or "")
+    except ValueError:
         data = {}
     if not isinstance(data, dict):
         data = {}
@@ -51,10 +51,9 @@ def damaged():
     load() answers with the defaults in that case, so readers keep working; anything that would write
     the file back asks this first, because saving defaults over a file we failed to read loses the lot.
     """
-    try:
-        text = paths.config_file().read_text(encoding="utf-8")
-    except OSError:
-        return False  # missing is not damaged: that is a machine with nothing installed yet
+    text = files.read(paths.config_file())
+    if text is None:
+        return False  # missing, or unreadable this instant: neither is damage we should write over
     try:
         return not isinstance(json.loads(text), dict)
     except ValueError:

@@ -44,7 +44,10 @@ def set_state(agent_id, session_id, value, project=None):
 
 def _read(agent_id, session_id):
     target = path(agent_id, session_id)
-    lines = target.read_text(encoding="utf-8").splitlines()
+    text = files.read(target)
+    if text is None:
+        raise FileNotFoundError(target)
+    lines = text.splitlines()
     value = lines[0].strip() if lines else ""
     project = lines[1].strip() if len(lines) > 1 else ""
     # Files written before 1.2.2 have no marker; their modification time is the best stand-in.
@@ -123,7 +126,7 @@ def sessions(agent_id, now=None):
             continue
         try:
             age = now - entry.stat().st_mtime
-            value = entry.read_text(encoding="utf-8").split("\n", 1)[0].strip()
+            value = (files.read(entry) or "").split("\n", 1)[0].strip()
         except OSError:
             continue
         if age > SESSION_STALE_SECONDS:
