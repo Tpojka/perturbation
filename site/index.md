@@ -29,6 +29,7 @@ Only one lamp is ever lit, and the fill pattern carries the meaning without colo
 - **Needs you, separately:** amber is its own state, so an agent blocked on a permission never hides behind one that is still working.
 - **A popup you can shape:** one row per agent, a mute switch each, and drag rows into the order you want.
 - **Three platforms:** macOS, Ubuntu/Linux and Windows. The installer detects which one you're on and which agents you have.
+- **Every Chromium browser:** Chrome, Edge, Brave, Opera, Vivaldi, Arc or Chromium. Tick the ones you use, get a lamp in each, and still one notification per event. No Chrome required.
 - **Stays out of the way:** hooks that always exit 0 and print nothing, merged into files that stay yours, backed up first.
 - **Fully local:** nothing leaves your machine. The status goes from each agent's hooks to the browser over native messaging.
 
@@ -103,6 +104,30 @@ Then load the extension, once per browser you ticked:
 
 The same folder is loaded into every browser, and one lamp per browser shows the same thing. You still get a single notification, because notifications come from the agent's hook rather than from the browser. No Chrome needed: tick Brave alone and Brave alone is registered.
 
+
+### Browsers
+
+The installer registers the native host once per browser you tick, and takes the registration away from one you untick. Where each browser looks for it:
+
+| OS | Where the browser reads the host manifest |
+| --- | --- |
+| macOS | `~/Library/Application Support/<browser>/NativeMessagingHosts/com.tpojka.perturbation.json` |
+| Ubuntu/Linux | `~/.config/<browser>/NativeMessagingHosts/com.tpojka.perturbation.json` |
+| Windows | one manifest in the data directory, with `HKCU\Software\<vendor>\NativeMessagingHosts\com.tpojka.perturbation` pointing at it |
+
+Some browsers also read Chrome's folder — on macOS, Brave and Opera both do. Perturbation still writes one manifest per browser, because that behaviour is undocumented, differs per platform, and points at a folder belonging to a browser you may not have. Arc is macOS-only, and Snap or Flatpak browsers on Linux cannot start a native host at all. Firefox is not supported: it speaks a different dialect and, unlike Chrome, refuses to keep an unsigned extension.
+
+### If the lamp stays grey
+
+The popup prints the browser's own error. What each one means:
+
+| Message | Cause |
+| --- | --- |
+| Specified native messaging host not found | That browser has no registration. Run `set browsers` and include it. |
+| Access to the specified native messaging host is forbidden | The manifest is there but doesn't list this extension's ID. Run the installer again. |
+| Manifest file is missing or unreadable | **Load unpacked** was pointed at the data directory instead of the `extension` folder inside it. |
+| Not connected, with no message | The host started and died. `python3 -m perturbation.install doctor` says which part is missing. |
+
 If you had Claudication, Codexalgia, Copilonidal or Antigravalgia installed, the installer lists what they left behind and offers to remove it, keeps your notification settings, and prints the old extension IDs to remove on your browser's extensions page.
 
 ## OS notifier
@@ -123,6 +148,7 @@ Run these from the repository. They take effect at once, with no restart:
 
 ```sh
 python3 -m perturbation.install set agents claude,codex      # watch exactly these
+python3 -m perturbation.install set browsers chrome,brave    # register these browsers
 python3 -m perturbation.install set sound off
 python3 -m perturbation.install set notifications off
 python3 -m perturbation.install mute codex on                # silence one agent, keep its lamp
@@ -164,4 +190,4 @@ Every hook command exits 0 and prints nothing, even when Python or the app is mi
 
 ---
 
-Perturbation 1.2.2 · [MIT](https://github.com/Tpojka/perturbation/blob/main/LICENSE) © 2026 Goran Grbic · An independent project, not affiliated with Anthropic, OpenAI, GitHub or Google.
+Perturbation 1.2.2 · updated 25 September 2026 · [MIT](https://github.com/Tpojka/perturbation/blob/main/LICENSE) © 2026 Goran Grbic · An independent project, not affiliated with Anthropic, OpenAI, GitHub or Google.

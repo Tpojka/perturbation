@@ -282,6 +282,7 @@
       <li><b>Needs you, separately</b><span>Amber is its own state, so an agent blocked on a permission never hides behind one that is still working.</span></li>
       <li><b>A popup you can shape</b><span>One row per agent, a mute switch each, and drag rows into the order you want.</span></li>
       <li><b>Three platforms</b><span>macOS, Ubuntu/Linux and Windows. The installer detects which one you're on and which agents you have.</span></li>
+      <li><b>Every Chromium browser</b><span>Chrome, Edge, Brave, Opera, Vivaldi, Arc or Chromium: tick the ones you use, get a lamp in each, and still one notification per event. No Chrome required.</span></li>
       <li><b>Stays out of the way</b><span>Hooks that always exit 0 and print nothing, merged into files that stay yours and are backed up first.</span></li>
       <li><b>Fully local</b><span>Nothing leaves your machine. The status goes from each agent's hooks to the browser over native messaging.</span></li>
     </ul>
@@ -345,6 +346,35 @@ Let Antigravity show "needs you" alerts? This sets its status line command. [y/N
       <li>Restart any running agent sessions so they load the hooks. In Codex, run <code>/hooks</code> and trust the new hooks.</li>
     </ol>
     <p class="note">The same folder goes into every browser you ticked, and each one gets its own lamp showing the same thing — with a single notification, because that comes from the agent's hook and not from the browser. No Chrome needed: tick Brave alone and Brave alone is registered.</p>
+
+    <h3 id="browsers">Browsers</h3>
+    <p>The installer registers the native host once per browser you tick, and takes the registration away from one you untick. Where each browser looks for it:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>OS</th><th>Where the browser reads the host manifest</th></tr></thead>
+        <tbody>
+          <tr><td>macOS</td><td><code>~/Library/Application Support/&lt;browser&gt;/NativeMessagingHosts/com.tpojka.perturbation.json</code></td></tr>
+          <tr><td>Ubuntu/Linux</td><td><code>~/.config/&lt;browser&gt;/NativeMessagingHosts/com.tpojka.perturbation.json</code></td></tr>
+          <tr><td>Windows</td><td>one manifest in the data directory, with <code>HKCU\Software\&lt;vendor&gt;\NativeMessagingHosts\com.tpojka.perturbation</code> pointing at it</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Some browsers also read Chrome's folder &mdash; on macOS, Brave and Opera both do. Perturbation still writes one manifest per browser, because that behaviour is undocumented, differs per platform, and points at a folder belonging to a browser you may not have. Arc is macOS-only, and Snap or Flatpak browsers on Linux cannot start a native host at all. Firefox is not supported: it speaks a different dialect and, unlike Chrome, refuses to keep an unsigned extension.</p>
+
+    <h3 id="grey">If the lamp stays grey</h3>
+    <p>The popup prints the browser's own error. What each one means:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Message</th><th>Cause</th></tr></thead>
+        <tbody>
+          <tr><td>Specified native messaging host not found</td><td>That browser has no registration. Run <code>set browsers</code> and include it.</td></tr>
+          <tr><td>Access to the specified native messaging host is forbidden</td><td>The manifest is there but doesn't list this extension's ID. Run the installer again.</td></tr>
+          <tr><td>Manifest file is missing or unreadable</td><td><b>Load unpacked</b> was pointed at the data directory instead of the <code>extension</code> folder inside it.</td></tr>
+          <tr><td>Not connected, with no message</td><td>The host started and died. <code>python3 -m perturbation.install doctor</code> says which part is missing.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <p class="note">Had Claudication, Codexalgia, Copilonidal or Antigravalgia installed? The installer lists what they left behind and offers to remove it, keeps your notification settings, and prints the old extension IDs to remove on your browser's extensions page.</p>
   </section>
 
@@ -366,6 +396,7 @@ Let Antigravity show "needs you" alerts? This sets its status line command. [y/N
     <h3>Change settings any time</h3>
     <p>Run these from the repository. They take effect at once, with no restart:</p>
     <div class="code"><pre><code>python3 -m perturbation.install set agents claude,codex      <span class="c"># watch exactly these</span>
+python3 -m perturbation.install set browsers chrome,brave    <span class="c"># register these browsers</span>
 python3 -m perturbation.install set sound off
 python3 -m perturbation.install set notifications off
 python3 -m perturbation.install mute codex on                <span class="c"># silence one agent, keep its lamp</span>
@@ -410,6 +441,7 @@ browser ──starts──► perturbation.pyz host
 <footer>
   <div class="wrap">
     <span>Perturbation 1.2.2 · <a href="https://github.com/Tpojka/perturbation/blob/main/LICENSE">MIT</a> © 2026 Goran Grbic</span>
+    <span>Updated <time datetime="2026-09-25">25 September 2026</time></span>
     <span><a href="index.md">Markdown version</a></span>
     <span>An independent project, not affiliated with Anthropic, OpenAI, GitHub or Google.</span>
   </div>
