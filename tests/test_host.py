@@ -46,15 +46,15 @@ class StatusTest(IsolatedTestCase):
 
     def test_settings_messages_from_the_popup(self):
         config.save({"agents": ["claude"]})
-        self.assertTrue(host.handle({"type": "mute", "id": "codex", "muted": True}, config.load()))
+        self.assertTrue(host.handle({"type": "mute", "id": "codex", "muted": True}))
         self.assertEqual(config.load()["mute"], {"codex": True})
-        self.assertTrue(host.handle({"type": "mute", "id": "codex", "muted": False}, config.load()))
+        self.assertTrue(host.handle({"type": "mute", "id": "codex", "muted": False}))
         self.assertEqual(config.load()["mute"], {})
-        self.assertTrue(host.handle({"type": "order", "ids": ["copilot", "nobody", 3, "claude"]}, config.load()))
+        self.assertTrue(host.handle({"type": "order", "ids": ["copilot", "nobody", 3, "claude"]}))
         self.assertEqual(config.load()["order"], ["copilot", "claude"])
-        self.assertTrue(host.handle({"type": "get"}, config.load()))
-        self.assertFalse(host.handle({"type": "nonsense"}, config.load()))
-        self.assertFalse(host.handle("garbage", config.load()))
+        self.assertTrue(host.handle({"type": "get"}))
+        self.assertFalse(host.handle({"type": "nonsense"}))
+        self.assertFalse(host.handle("garbage"))
         self.assertEqual(config.load()["agents"], ["claude"])
 
     def test_frames(self):

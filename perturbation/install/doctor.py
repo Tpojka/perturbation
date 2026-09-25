@@ -38,6 +38,8 @@ def _app_checks(app):
             result.append(Check(False, f"the installed app doesn't run: {error}"))
         if version:
             result.append(Check(version == __version__, f"installed app is {version}" + ("" if version == __version__ else f", this repository is {__version__}; run the installer again")))
+    if config.damaged():
+        result.append(Check(False, f"{describe(paths.config_file())} can't be read, so the defaults are in use; run the installer to write it again"))
     manifest = paths.extension_dir() / "manifest.json"
     result.append(Check(manifest.is_file(), f"extension files {'present' if manifest.is_file() else 'missing'} in {describe(paths.extension_dir())}"))
     if manifest.is_file():

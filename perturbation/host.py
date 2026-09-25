@@ -70,22 +70,32 @@ def read_message(stream):
         return {}
 
 
-def handle(message, settings):
-    """Apply a settings message from the popup. Returns True when config.json changed."""
+def handle(message):
+    """Apply a settings message from the popup. Returns True when the status should be resent.
+
+    One host runs per browser, so two popups can send a mute and a reorder at the same moment. Each is a
+    read-modify-write of the whole file, so it happens under the lock, and the settings are read inside
+    it rather than passed in. A file we could not read is left alone: writing our defaults back over it
+    would throw away every agent, browser and setting in it.
+    """
     if not isinstance(message, dict):
         return False
     kind = message.get("type")
-    if kind == "mute" and isinstance(message.get("id"), str):
-        settings["mute"][message["id"]] = bool(message.get("muted"))
-        settings["mute"] = {k: v for k, v in settings["mute"].items() if v}
-    elif kind == "order" and isinstance(message.get("ids"), list):
-        known = agents.ids()
-        settings["order"] = [i for i in message["ids"] if isinstance(i, str) and i in known]
-    elif kind == "get":
+    if kind == "get":
         return True  # nothing to save, but resend the status
-    else:
+    if kind not in ("mute", "order") or config.damaged():
         return False
-    config.save(settings)
+    with state.locked("config"):
+        settings = config.load()
+        if kind == "mute" and isinstance(message.get("id"), str):
+            settings["mute"][message["id"]] = bool(message.get("muted"))
+            settings["mute"] = {k: v for k, v in settings["mute"].items() if v}
+        elif kind == "order" and isinstance(message.get("ids"), list):
+            known = agents.ids()
+            settings["order"] = [i for i in message["ids"] if isinstance(i, str) and i in known]
+        else:
+            return False
+        config.save(settings)
     return True
 
 
@@ -103,7 +113,7 @@ class Host:
             if message is None:
                 os._exit(0)
             with self.lock:
-                if handle(message, config.load()):
+                if handle(message):
                     self.wake.set()
 
     def send(self, message):

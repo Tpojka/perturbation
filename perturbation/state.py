@@ -81,15 +81,16 @@ def clear(agent_id, session_id):
 
 
 @contextmanager
-def locked(agent_id):
-    """Hold an exclusive lock for one agent while a hook reads, decides and writes.
+def locked(name):
+    """Hold an exclusive lock, by name, around a read-decide-write that others may be doing too.
 
-    Some agents run two hooks at the same moment for one turn (opencode's two idle events, Antigravity's
-    Stop hook and status line). Without the lock both read the same old state: one hides the other's
-    notification, or both notify. The lock lives beside the sessions, never among them, and the OS
-    releases it if a hook is killed.
+    Agents lock by their id: some run two hooks at the same moment for one turn (opencode's two idle
+    events, Antigravity's Stop hook and status line), and without the lock both read the same old state,
+    so one hides the other's notification or both notify. The popup's settings lock by "config", because
+    one host per browser means one writer per browser. The lock lives beside the sessions, never among
+    them, and the OS releases it if the holder is killed.
     """
-    path = paths.data_dir() / "locks" / f"{_safe(agent_id)}.lock"
+    path = paths.data_dir() / "locks" / f"{_safe(name)}.lock"
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a+b") as handle:
         if sys.platform == "win32":
