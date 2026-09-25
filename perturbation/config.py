@@ -8,6 +8,7 @@ DEFAULTS = {
     "notifications": False,
     "sound": True,
     "agents": [],  # ids of the agents being watched (their hooks are installed)
+    "browsers": [],  # ids of the browsers the native host is registered with
     "order": [],  # popup and tooltip order; ids missing here follow in the registry's order
     "mute": {},  # {agent_id: true} silences that agent's notifications
     "statusline": {},  # {agent_id: true} when we own that agent's status line

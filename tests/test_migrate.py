@@ -4,7 +4,7 @@ import sys
 from contextlib import redirect_stdout
 from unittest import mock
 
-from perturbation import config, install
+from perturbation import browsers, config, install
 from perturbation.agents import antigravity, claude, codex, copilot
 from perturbation.install import migrate, system
 from tests.support import IsolatedTestCase, read_json, write_json
@@ -24,7 +24,7 @@ def plant_predecessors():
         write_json(migrate.data_dir_of(name) / "config.json", settings)
     if sys.platform != "win32":
         for host in ("com.tpojka.claudication", "com.tpojka.antigravalgia"):
-            directory = system.manifest_dirs()[0]
+            directory = browsers.base.host_dir(browsers.get("chrome"))
             directory.mkdir(parents=True, exist_ok=True)
             write_json(directory / f"{host}.json", system.host_manifest("/x/host", host, "old"))
 
@@ -68,7 +68,7 @@ class MigrateTest(IsolatedTestCase):
         self.assertEqual(read_json(antigravity.settings_path()), {"trustedWorkspaces": ["/w"]})
         self.assertFalse(migrate.data_dir_of("Claudication").exists())
         if sys.platform != "win32":
-            self.assertFalse((system.manifest_dirs()[0] / "com.tpojka.claudication.json").exists())
+            self.assertFalse((browsers.base.host_dir(browsers.get("chrome")) / "com.tpojka.claudication.json").exists())
 
     def run_installer(self, *args):
         with redirect_stdout(io.StringIO()) as out:
@@ -77,7 +77,7 @@ class MigrateTest(IsolatedTestCase):
 
     def test_the_installer_offers_the_migration(self):
         plant_predecessors()
-        with mock.patch("builtins.input", side_effect=["", "2", "", "y"]) as ask:
+        with mock.patch("builtins.input", side_effect=["", "", "2", "", "y"]) as ask:
             out = self.run_installer()
         questions = " ".join(call.args[0] for call in ask.call_args_list)
         self.assertIn("Remove them now?", questions)

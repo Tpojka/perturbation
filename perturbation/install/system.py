@@ -1,11 +1,10 @@
-"""OS-specific install steps: how hooks start Python, and how Chrome finds the native host."""
-import json
-import os
+"""OS-specific install steps: how hooks start Python, and how browsers find the native host."""
 import shlex
 import sys
 from pathlib import Path
 
-from .. import EXTENSION_ID, HOST_NAME, NAME, paths
+from .. import EXTENSION_ID, HOST_NAME, NAME, browsers, paths
+from ..browsers import base
 
 LABELS = {"darwin": "macOS", "linux": "Ubuntu/Linux", "win32": "Windows"}
 
@@ -90,88 +89,54 @@ def write_host_launcher(app):
 def host_manifest(launcher, host_name=HOST_NAME, extension_id=EXTENSION_ID):
     return {
         "name": host_name,
-        "description": f"{NAME}: coding agent status for Chrome",
+        "description": f"{NAME}: coding agent status in the browser",
         "path": str(launcher),
         "type": "stdio",
         "allowed_origins": [f"chrome-extension://{extension_id}/"],
     }
 
 
-def register_host(launcher):
-    """Tell Chrome where the native host is. Returns the manifest paths written."""
-    manifest = json.dumps(host_manifest(launcher), indent=2) + "\n"
-    if sys.platform == "win32":
-        import winreg
+def register_host(launcher, browser_ids=None, host_name=HOST_NAME):
+    """Tell the chosen browsers where the native host is. Returns [(browser, where)], for printing.
 
-        target = manifest_path()
-        target.write_text(manifest)
-        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, windows_key(HOST_NAME)) as key:
-            winreg.SetValueEx(key, "", 0, winreg.REG_SZ, str(target))
-        return [target]
-
+    One registration per browser, never a shared one: some Chromium browsers also read Chrome's folder,
+    but that is undocumented, differs per platform, and leans on a browser the user may not have.
+    """
+    manifest = host_manifest(launcher, host_name)
+    chosen = browsers.some(browser_ids) if browser_ids is not None else [browsers.get(browsers.DEFAULT)]
     written = []
-    for directory in manifest_dirs():
-        directory.mkdir(parents=True, exist_ok=True)
-        target = directory / f"{HOST_NAME}.json"
-        target.write_text(manifest)
-        written.append(target)
+    for browser in chosen:
+        where = base.register(browser, manifest, host_name)
+        if where:
+            written.append((browser, where))
     return written
 
 
-def manifest_path(host_name=HOST_NAME, data_dir=None):
-    """The native host manifest Chrome reads (the Chrome one, on Linux)."""
-    if sys.platform == "win32":
-        return (data_dir or paths.data_dir()) / f"{host_name}.json"
-    return manifest_dirs()[0] / f"{host_name}.json"
+def registrations(host_name=HOST_NAME):
+    """[(browser, manifest path)] for every browser that has this host registered."""
+    found = []
+    for browser in browsers.known():
+        path = base.registered(browser, host_name)
+        if path is not None:
+            found.append((browser, path))
+    return found
 
 
-def registered_manifests(host_name=HOST_NAME, data_dir=None):
-    """Every manifest registered for `host_name`, on this OS."""
-    if sys.platform == "win32":
-        import winreg
+def registered_manifests(host_name=HOST_NAME):
+    """Every manifest registered for `host_name`, whichever browser reads it."""
+    return [path for _, path in registrations(host_name)]
 
+
+def unregister_host(host_name=HOST_NAME, browser_ids=None):
+    """Remove the registration from every browser, or only from the named ones. Returns what went."""
+    chosen = browsers.some(browser_ids) if browser_ids is not None else browsers.known()
+    removed = []
+    for browser in chosen:
+        removed += base.unregister(browser, host_name)
+    if sys.platform == "win32" and not registrations(host_name):
+        # The manifest itself is shared on Windows: it goes when the last key pointing at it does.
         try:
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, windows_key(host_name)) as key:
-                value, _ = winreg.QueryValueEx(key, "")
+            base.shared_manifest(host_name).unlink()
         except OSError:
-            return []
-        return [Path(value)]
-    return [d / f"{host_name}.json" for d in manifest_dirs(all_browsers=True) if (d / f"{host_name}.json").is_file()]
-
-
-def unregister_host(host_name=HOST_NAME):
-    if sys.platform == "win32":
-        import winreg
-
-        for manifest in registered_manifests(host_name):
-            try:
-                manifest.unlink()
-            except OSError:
-                pass
-        try:
-            winreg.DeleteKey(winreg.HKEY_CURRENT_USER, windows_key(host_name))
-        except FileNotFoundError:
             pass
-        return
-    for directory in manifest_dirs(all_browsers=True):
-        try:
-            (directory / f"{host_name}.json").unlink()
-        except FileNotFoundError:
-            pass
-
-
-def windows_key(host_name):
-    return rf"Software\Google\Chrome\NativeMessagingHosts\{host_name}"
-
-
-def manifest_dirs(all_browsers=False):
-    if sys.platform == "darwin":
-        return [Path.home() / "Library" / "Application Support" / "Google" / "Chrome" / "NativeMessagingHosts"]
-    config = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
-    # Chrome always; Chromium only when it has a profile (Snap/Flatpak browsers can't start native hosts).
-    browsers = ["google-chrome", "chromium"]
-    return [
-        config / b / "NativeMessagingHosts"
-        for b in browsers
-        if all_browsers or b == "google-chrome" or (config / b).is_dir()
-    ]
+    return removed

@@ -118,7 +118,7 @@ class InstallTest(InstallerTestCase):
         os.makedirs(claude.config_home())
         os.makedirs(antigravity.cli_home())
         # claude and antigravity are pre-checked; "1" unchecks claude, "3" checks copilot, Enter confirms.
-        with mock.patch("builtins.input", side_effect=["1 3", "", "2", "n", "y"]) as ask:
+        with mock.patch("builtins.input", side_effect=["1 3", "", "", "2", "n", "y"]) as ask:
             out = self.run_installer()
         self.assertIn("[x] 1) Claude Code", out)
         self.assertIn("found ~/.claude", out)
@@ -133,17 +133,17 @@ class InstallTest(InstallerTestCase):
         self.assertEqual(antigravity.statusline_owner(), "ours")
 
         # Option 1 is the extension alone, so neither extra question is asked; the watched set is kept.
-        with mock.patch("builtins.input", side_effect=["", "1"]) as ask:
+        with mock.patch("builtins.input", side_effect=["", "", "1"]) as ask:
             self.run_installer()
-        self.assertEqual(ask.call_count, 2)
+        self.assertEqual(ask.call_count, 3)
         self.assertEqual(config.load()["agents"], ["copilot", "antigravity"])
         self.assertIsNone(antigravity.statusline_owner())  # option 1 has no notifier, so no status line
 
     def test_menu_shortcuts_and_backing_out(self):
-        with mock.patch("builtins.input", side_effect=["a", "", "3"]):
+        with mock.patch("builtins.input", side_effect=["a", "", "", "3"]):
             self.run_installer()
         self.assertFalse(os.path.exists(self.data))
-        with mock.patch("builtins.input", side_effect=["a", "n", "2", "", "1"]):
+        with mock.patch("builtins.input", side_effect=["a", "n", "2", "", "", "1"]):
             self.run_installer()
         self.assertEqual(config.load()["agents"], ["codex"])
         with mock.patch("builtins.input", side_effect=EOFError):
@@ -166,9 +166,9 @@ class InstallTest(InstallerTestCase):
         self.assertEqual(config.load()["statusline"], {})
         # And it isn't even offered in the menu.
         os.makedirs(antigravity.cli_home(), exist_ok=True)
-        with mock.patch("builtins.input", side_effect=["", "2", "y"]) as ask:
+        with mock.patch("builtins.input", side_effect=["", "", "2", "y"]) as ask:
             self.run_installer()
-        self.assertEqual(ask.call_count, 3)
+        self.assertEqual(ask.call_count, 4)
 
     def test_statusline_command_turns_it_on_and_off(self):
         self.run_installer("2", "--agents", "antigravity")
@@ -238,7 +238,7 @@ class InstallTest(InstallerTestCase):
         state.set_state("claude", "s1", state.BUSY)
         out = self.run_installer("status")
         self.assertIn("Perturbation", out)
-        self.assertIn("Native host: ", out)
+        self.assertIn("✓ Google Chrome    registered", out)
         self.assertIn("● Claude Code", out)
         self.assertIn("1 working of 1 session, muted", out)
         self.assertIn("status line on", out)

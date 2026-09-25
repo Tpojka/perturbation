@@ -1,9 +1,10 @@
-"""Installer: copies the app and extension into the per-user data directory, then wires up Chrome and
-every agent you choose to watch.
+"""Installer: copies the app and extension into the per-user data directory, then wires up the browsers
+and every agent you choose to watch.
 
 Usage: python3 -m perturbation.install                            interactive
-       python3 -m perturbation.install 1|2|3 [--agents a,b | --all] [--no-sound] [--statusline] [--migrate]
+       python3 -m perturbation.install 1|2|3 [--agents a,b | --all] [--browsers a,b | --browsers all] [--no-sound] [--statusline] [--migrate]
        python3 -m perturbation.install set agents claude,codex      change the watched set
+       python3 -m perturbation.install set browsers chrome,brave    change the registered browsers
        python3 -m perturbation.install set sound|notifications|waiting-as-busy on|off
        python3 -m perturbation.install mute <agent> on|off          silence one agent's notifications
        python3 -m perturbation.install statusline <agent> on|off    add or remove an agent's status line
@@ -18,7 +19,7 @@ import tempfile
 import zipapp
 from pathlib import Path
 
-from .. import __version__, agents, config, notify, paths, state
+from .. import __version__, agents, browsers, config, notify, paths, state
 from ..agents.base import ConfigError, describe
 from . import doctor, menu, migrate, system
 
@@ -56,7 +57,7 @@ def _non_interactive(choice, flags):
     selected = _agents_flag(flags)
     statusline = {a.ID: True for a in _statusline_agents(selected)} if "--statusline" in flags else {}
     predecessors = migrate.find() if "--migrate" in flags else []
-    install(selected, notifications=choice == "2", sound="--no-sound" not in flags, statusline=statusline, predecessors=predecessors)
+    install(selected, notifications=choice == "2", sound="--no-sound" not in flags, statusline=statusline, predecessors=predecessors, browser_ids=_browsers_flag(flags))
 
 
 def _agents_flag(flags):
@@ -78,6 +79,55 @@ def _agents_flag(flags):
     return [a.ID for a in agents.registered() if a.detect()]
 
 
+def _value_flag(flags, name):
+    """The value of `--name x` or `--name=x`, or None."""
+    for index, flag in enumerate(flags):
+        if flag == name and index + 1 < len(flags):
+            return flags[index + 1]
+        if flag.startswith(f"{name}="):
+            return flag.split("=", 1)[1]
+    return None
+
+
+def _browsers_flag(flags):
+    value = _value_flag(flags, "--browsers")
+    if value is None:
+        return _browsers_now()
+    if value.strip() == "all":
+        return [b.ID for b in browsers.supported()]
+    return _browser_ids(value)
+
+
+def _browser_ids(value):
+    known = browsers.ids()
+    wanted = [v.strip() for v in value.split(",") if v.strip()]
+    unknown = [v for v in wanted if v not in known]
+    if unknown:
+        sys.exit(f"unknown browser{'s' if len(unknown) > 1 else ''}: {', '.join(unknown)}. Known: {', '.join(known)}")
+    return [i for i in known if i in wanted]
+
+
+def _browsers_now():
+    """What to register with when nothing was asked for: the recorded choice, else what is already
+    registered (an install from before browsers were a question), else the browsers really installed.
+
+    A leftover profile folder never pre-checks a browser: folders outlive uninstalls.
+    """
+    recorded = [b for b in config.load()["browsers"] if b in browsers.ids()]
+    found = recorded or _in_use() or browsers.installed()
+    return [i for i in browsers.ids() if i in set(found)] or [browsers.DEFAULT]
+
+
+def _in_use():
+    """Browsers that already have the host: registered with it, or running one right now.
+
+    A browser reading another's folder has no registration of its own, so a running host is the only
+    sign it is using the lamp - and dropping it silently on the next run would be the rudest outcome.
+    """
+    running = [module.ID for module, _ in browsers.base.running_hosts(paths.app_file().name) if module]
+    return [b.ID for b, _ in system.registrations()] + running
+
+
 def _interactive():
     adapters = agents.registered()
     predecessors = migrate.find()
@@ -89,6 +139,10 @@ def _interactive():
         preselected = {i for i, found in detected.items() if found}
     selected = menu.choose_agents(adapters, preselected, detected)
     if selected is None:
+        print("Nothing installed.")
+        return
+    chosen_browsers = menu.choose_browsers(browsers.supported(), _browsers_now(), browsers.detected())
+    if chosen_browsers is None:
         print("Nothing installed.")
         return
     choice = menu.choose_install()
@@ -110,7 +164,7 @@ def _interactive():
                 print(f"  {found.name}: {item}")
         if not menu.ask_yes_no("Remove them now? Their hooks, host registrations and data directories go; nothing else does."):
             predecessors = []
-    install(selected, notifications=notifications, sound=sound, statusline=statusline, predecessors=predecessors)
+    install(selected, notifications=notifications, sound=sound, statusline=statusline, predecessors=predecessors, browser_ids=chosen_browsers)
 
 
 def _statusline_agents(selected):
@@ -122,15 +176,15 @@ def _statusline_free(adapter):
     return adapter.statusline_owner() in (None, "ours")
 
 
-def install(selected, notifications, sound=True, statusline=None, predecessors=()):
+def install(selected, notifications, sound=True, statusline=None, predecessors=(), browser_ids=None):
     data = paths.data_dir()
     data.mkdir(parents=True, exist_ok=True)
     _copy_extension()
     app = _build_app()
     print(f"✓ Installed to {data}")
 
-    for manifest in system.register_host(system.write_host_launcher(app)):
-        print(f"✓ Native host registered: {manifest}")
+    chosen_browsers = list(browser_ids) if browser_ids is not None else [browsers.DEFAULT]
+    _register_browsers(chosen_browsers, app)
 
     if predecessors:
         _remove_predecessors(predecessors)
@@ -156,7 +210,7 @@ def install(selected, notifications, sound=True, statusline=None, predecessors=(
             print("  Fix that file by hand, then run the installer again.")
 
     settings = config.load()
-    settings.update({"notifications": notifications, "sound": sound, "agents": watched})
+    settings.update({"notifications": notifications, "sound": sound, "agents": watched, "browsers": chosen_browsers})
     settings["order"] = settings["order"] or agents.ids()
     settings["statusline"] = {}
     for adapter in _statusline_agents(watched):
@@ -178,12 +232,29 @@ def install(selected, notifications, sound=True, statusline=None, predecessors=(
     if not watched:
         print("! No agents are watched, so the lamp stays grey. Run the installer again or use `set agents`.")
 
-    print(
-        f"""
-Next, if the extension isn't loaded yet: open chrome://extensions, turn on Developer mode,
-click "Load unpacked" and pick: {paths.extension_dir()}
+    print(_next_steps(chosen_browsers))
+
+
+def _register_browsers(chosen, app):
+    """Register the host with the chosen browsers and take it away from the others."""
+    launcher = system.write_host_launcher(app)
+    for browser, where in system.register_host(launcher, chosen):
+        print(f"✓ Native host registered for {browser.NAME}: {where}")
+    for gone in system.unregister_host(browser_ids=[b for b in browsers.ids() if b not in chosen]):
+        print(f"✓ Registration removed: {gone}")
+    if not chosen:
+        print("! No browser is registered, so the lamp has nothing to talk to.")
+
+
+def _next_steps(chosen):
+    """The closing instructions, one line per browser: the extension is always loaded by hand."""
+    pages = "\n".join(f"    {b.NAME}: {b.PAGE}" for b in browsers.some(chosen))
+    return f"""
+Next, in each browser below: open its extensions page, turn on Developer mode, click "Load unpacked"
+and pick this folder itself (not the folder above it):
+    {paths.extension_dir()}
+{pages}
 Then pin the lamp to the toolbar. Restart running agent sessions so they load the hooks."""
-    )
 
 
 def _remove_predecessors(predecessors):
@@ -218,9 +289,10 @@ def uninstall():
             adapter.uninstall()
         except ConfigError as error:
             print(f"! {adapter.NAME}: {error}")
-    system.unregister_host()
+    for gone in system.unregister_host():
+        print(f"✓ Registration removed: {gone}")
     shutil.rmtree(paths.data_dir(), ignore_errors=True)
-    print("✓ Perturbation removed. Remove the extension itself from chrome://extensions.")
+    print("✓ Perturbation removed. Remove the extension itself from each browser's extensions page.")
 
 
 def _require_install():
@@ -232,8 +304,10 @@ def set_option(name=None, value=None):
     """Change one setting of the installed app; the hook and the host pick it up on their next run."""
     if name == "agents":
         return set_agents(value)
+    if name == "browsers":
+        return set_browsers(value)
     if name not in OPTIONS or value not in ("on", "off"):
-        sys.exit("usage: python3 -m perturbation.install set agents <ids> | sound|notifications|waiting-as-busy on|off")
+        sys.exit("usage: python3 -m perturbation.install set agents <ids> | browsers <ids> | sound|notifications|waiting-as-busy on|off")
     _require_install()
     settings = config.load()
     settings[OPTIONS[name]] = value == "on"
@@ -266,6 +340,19 @@ def set_agents(value=None):
             print(f"! {adapter.NAME}: {error}")
     settings["agents"] = watched
     config.save(settings)
+
+
+def set_browsers(value=None):
+    """Register with exactly these browsers, and take the registration away from the rest."""
+    _require_install()
+    if value is None:
+        sys.exit(f"usage: python3 -m perturbation.install set browsers <ids>   (known: {', '.join(browsers.ids())})")
+    chosen = [b.ID for b in browsers.supported()] if value.strip() == "all" else _browser_ids(value)
+    settings = config.load()
+    _register_browsers(chosen, paths.app_file())
+    settings["browsers"] = chosen
+    config.save(settings)
+    print(_next_steps(chosen))
 
 
 def set_mute(agent_id=None, value=None):
@@ -304,8 +391,7 @@ def status():
     settings = config.load()
     installed = paths.app_file().exists()
     print(f"Perturbation {__version__} · {'installed in' if installed else 'not installed; data directory would be'} {paths.data_dir()}")
-    manifests = system.registered_manifests()
-    print(f"Native host: {', '.join(describe(m) for m in manifests) if manifests else 'not registered'}")
+    _print_browsers(settings)
     print(f"Notifications: {'on' if settings['notifications'] else 'off'}, sound {'on' if settings['sound'] else 'off'}, waiting counts as busy: {'yes' if settings['count_waiting_as_busy'] else 'no'}")
     print("Agents:")
     for adapter in agents.ordered(settings["order"]):
@@ -328,6 +414,25 @@ def status():
     predecessors = migrate.find()
     if predecessors:
         print("Predecessors still installed: " + ", ".join(f.name for f in predecessors) + "  (run: python3 -m perturbation.install migrate)")
+
+
+def _print_browsers(settings):
+    chosen = settings["browsers"]
+    live = {}
+    for found, pid in browsers.base.running_hosts():
+        if found is not None:
+            live[found.ID] = pid
+    print("Browsers:")
+    for module in browsers.known():
+        where = browsers.base.registered(module)
+        if where is None and module.ID not in chosen and not browsers.base.detect(module):
+            continue
+        line = f"  {'✓' if where else '·'} {module.NAME:<16} {'registered' if where else 'not registered':<14}"
+        if where:
+            line += f" {describe(where)}"
+        if module.ID in live:
+            line += "  (host running)"
+        print(line.rstrip())
 
 
 def _glyph(value):

@@ -86,3 +86,11 @@ class IsolatedTestCase(unittest.TestCase):
         which = mock.patch("shutil.which", side_effect=_no_agents)
         which.start()
         self.addCleanup(which.stop)
+        # /Applications is outside the temporary home, so browser detection is pointed inside it too.
+        apps = mock.patch("perturbation.browsers.base.app_dirs", return_value=[Path(self.home) / "Applications"])
+        apps.start()
+        self.addCleanup(apps.stop)
+        # The process table is the machine's, not the test's: no test may see a browser that is really running.
+        hosts = mock.patch("perturbation.browsers.base.running_hosts", return_value=[])
+        hosts.start()
+        self.addCleanup(hosts.stop)

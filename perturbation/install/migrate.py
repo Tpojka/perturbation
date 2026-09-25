@@ -1,8 +1,8 @@
 """Finds and removes the four projects this one subsumes: Claudication, Codexalgia, Copilonidal and
 Antigravalgia. Each left a native host manifest, a data directory and hook entries in its agent's config.
 
-Nothing is removed without listing it first. Chrome extensions can't uninstall each other, so the old
-extension IDs are printed for the user to remove at chrome://extensions.
+Nothing is removed without listing it first. One extension can't uninstall another, so the old
+extension IDs are printed for the user to remove on the browser's extensions page.
 """
 import json
 import os
@@ -80,7 +80,7 @@ def find():
     found = []
     for spec in PREDECESSORS:
         adapter = agents.get(spec["agent"])
-        manifests = system.registered_manifests(spec["host"], data_dir_of(spec["name"]))
+        manifests = system.registered_manifests(spec["host"])
         data_dir = data_dir_of(spec["name"])
         try:
             hooks = adapter.installed(spec["markers"]) if adapter else None

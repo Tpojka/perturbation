@@ -2,18 +2,19 @@
 import json
 import subprocess
 import sys
+from pathlib import Path
 
-from .. import EXTENSION_ID, __version__, agents, config, paths
+from .. import EXTENSION_ID, __version__, agents, browsers, config, paths
 from ..agents.base import Check, describe
 from . import system
 
 
 def checks():
-    """(section, [Check]) pairs. Sections are the app, Chrome, then one per watched agent."""
+    """(section, [Check]) pairs. Sections are the app, the browsers, then one per watched agent."""
     settings = config.load()
     app = paths.app_file()
     commands = system.Commands(app)
-    result = [("Perturbation", _app_checks(app)), ("Chrome", _chrome_checks())]
+    result = [("Perturbation", _app_checks(app)), ("Browsers", _browser_checks(settings))]
     if not settings["agents"]:
         result.append(("Agents", [Check(False, "no agents are watched; run the installer or `set agents`")]))
     for adapter in agents.ordered(settings["order"]):
@@ -48,24 +49,56 @@ def _app_checks(app):
     return result
 
 
-def _chrome_checks():
-    manifests = system.registered_manifests()
-    if not manifests:
-        return [Check(False, "native host is not registered with Chrome; run the installer")]
+def _browser_checks(settings):
+    """One line per browser we should be registered with, plus what is actually running.
+
+    A browser without a manifest of its own is not necessarily broken - Brave and Opera read Chrome's
+    folder on macOS - so a missing file is reported against what we were asked to register, and the
+    running hosts are reported separately as the only proof a browser is really attached.
+    """
+    chosen = settings["browsers"] or [b.ID for b, _ in system.registrations()]
+    if not chosen:
+        return [Check(False, "no browser is registered; run the installer or `set browsers`")]
     result = []
-    for path in manifests:
-        try:
-            manifest = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            result.append(Check(False, f"{describe(path)} is unreadable"))
+    for module in browsers.some(chosen):
+        if not browsers.base.supported(module):
+            result.append(Check(False, f"{module.NAME}: no build of it can be registered on {system.label()}"))
             continue
-        result.append(Check(True, f"native host registered in {describe(path)}"))
-        launcher = manifest.get("path", "")
-        exists = bool(launcher) and __import__("os").path.isfile(launcher)
-        result.append(Check(exists, f"host launcher {describe(launcher)} {'exists' if exists else 'is missing'}"))
-        origin = f"chrome-extension://{EXTENSION_ID}/"
-        result.append(Check(origin in manifest.get("allowed_origins", []), f"manifest allows extension {EXTENSION_ID}"))
+        manifest_path = browsers.base.registered(module)
+        if manifest_path is None:
+            result.append(Check(False, f"{module.NAME}: not registered; run the installer again"))
+            continue
+        result.append(Check(True, f"{module.NAME}: registered in {browsers.base.location(module)}"))
+        result += _manifest_checks(module, manifest_path)
+    for module, path in system.registrations():
+        if module.ID not in chosen:
+            result.append(Check(False, f"{module.NAME}: left-over registration in {describe(path)}; run `set browsers` to clear it"))
+    result.append(_running_check())
     return result
+
+
+def _manifest_checks(module, path):
+    try:
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return [Check(False, f"{module.NAME}: {describe(path)} is unreadable")]
+    launcher = manifest.get("path", "")
+    exists = bool(launcher) and Path(launcher).is_file()
+    origin = f"chrome-extension://{EXTENSION_ID}/"
+    return [
+        Check(exists, f"{module.NAME}: host launcher {describe(launcher)} {'exists' if exists else 'is missing'}"),
+        Check(origin in manifest.get("allowed_origins", []), f"{module.NAME}: manifest allows extension {EXTENSION_ID}"),
+    ]
+
+
+def _running_check():
+    """Informational: which browsers have actually started a host. Never a failure - a closed browser
+    has no host running, and Windows isn't asked at all."""
+    running = browsers.base.running_hosts(paths.app_file().name)
+    if not running:
+        return Check(True, "no host is running (no browser has the extension open, or this is Windows)")
+    names = sorted({module.NAME if module else "unknown browser" for module, _ in running})
+    return Check(True, f"{len(running)} host{'s' if len(running) != 1 else ''} running: {', '.join(names)}")
 
 
 def run():

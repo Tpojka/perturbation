@@ -1,7 +1,7 @@
 """Entry point of the installed perturbation.pyz.
 
 `hook <agent> [<event>]` is run by an agent's hook system, `statusline <agent>` by an agent's TUI,
-`remind` by the hook itself (a deferred update), `host` by Chrome, and `version` by the doctor.
+`remind` by the hook itself (a deferred update), `host` by the browser, and `version` by the doctor.
 """
 import sys
 

@@ -1,4 +1,4 @@
-"""Chrome native-messaging host: one process for every agent.
+"""Native-messaging host: one process for every agent, and one per browser that runs the extension.
 
 It watches the whole sessions tree, pushes a per-agent status to the extension whenever it changes, and
 takes a few settings back from the popup (mute, order). Frames are a 4-byte native-endian length prefix
@@ -97,7 +97,7 @@ class Host:
         self.lock = threading.Lock()
 
     def reader(self):
-        # Chrome closes our stdin when the extension disconnects; anything before that is a settings message.
+        # The browser closes our stdin when the extension disconnects; anything before that is a settings message.
         while True:
             message = read_message(self.stdin)
             if message is None:

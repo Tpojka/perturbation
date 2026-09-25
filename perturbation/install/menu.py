@@ -1,10 +1,12 @@
-"""The installer's questions: which agents to watch, what to install, and yes/no.
+"""The installer's questions: which agents to watch, which browsers to register, what to install, yes/no.
 
-The agent question is a small picker. Number keys toggle an agent directly, ↑/↓ (or j/k) move a cursor
-and Space toggles the agent under it, Enter confirms. All seven agents are listed alike, the free-tier
-ones after the pro-tier ones; folding the free tier behind a "more" row is still supported
+The agent and browser questions share one picker. Number keys toggle a row directly, ↑/↓ (or j/k) move
+a cursor and Space toggles the row under it, Enter confirms. All seven agents are listed alike, the
+free-tier ones after the pro-tier ones; folding the free tier behind a "more" row is still supported
 (`fold_free=True`) but off by default. When stdin isn't a terminal, the same picker reads whole lines
 instead, so it works in pipes and tests.
+
+The picker knows nothing about what it lists: any adapter with ID, NAME and a place in a registry does.
 """
 import os
 import sys
@@ -17,8 +19,8 @@ MENU = """
 Perturbation {version} installer ({os})
 
 What should be installed?
-  1) Chrome extension
-  2) Chrome extension + OS notifier
+  1) Browser extension
+  2) Browser extension + OS notifier
   3) Nothing (exit)
 """
 
@@ -26,8 +28,8 @@ CONFIRM, CANCEL = "confirm", "cancel"
 MORE = object()  # the folded row
 
 
-class AgentMenu:
-    """The picker's state: which agents are checked, where the cursor is, whether the free tier is shown."""
+class Picker:
+    """The picker's state: which rows are checked, where the cursor is, whether the free tier is shown."""
 
     def __init__(self, adapters, selected, detected, fold_free=False):
         self.adapters = list(adapters)
@@ -102,14 +104,23 @@ class AgentMenu:
         return [a.ID for a in self.adapters if a.ID in self.selected]
 
 
-def choose_agents(adapters, selected, detected, fold_free=False):
-    """Ask which agents to watch. Returns the chosen ids in registry order, or None when the user backs out."""
-    menu = AgentMenu(adapters, selected, detected, fold_free)
+def choose(question, adapters, selected, detected, fold_free=False):
+    """Ask one picker question. Returns the chosen ids in registry order, or None when the user backs out."""
+    picker = Picker(adapters, selected, detected, fold_free)
     print()
-    print("Which agents should be watched?")
+    print(question)
     if interactive():
-        return _pick_with_keys(menu)
-    return _pick_with_lines(menu)
+        return _pick_with_keys(picker)
+    return _pick_with_lines(picker)
+
+
+def choose_agents(adapters, selected, detected, fold_free=False):
+    return choose("Which agents should be watched?", adapters, selected, detected, fold_free)
+
+
+def choose_browsers(adapters, selected, detected):
+    """Which browsers get the native host registered. The extension itself is still loaded by hand."""
+    return choose("Which browsers should the lamp work in?", adapters, selected, detected)
 
 
 def interactive():

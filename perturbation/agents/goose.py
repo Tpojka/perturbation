@@ -84,7 +84,7 @@ def content(commands):
 
 
 def manifest():
-    return {"name": plugin_dir().name, "version": "1", "description": "Perturbation: shows Goose's status in Chrome's toolbar"}
+    return {"name": plugin_dir().name, "version": "1", "description": "Perturbation: shows Goose's status in the browser toolbar"}
 
 
 def install(commands):

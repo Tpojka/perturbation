@@ -12,7 +12,7 @@ NONE = {}
 
 class AgentMenuTest(IsolatedTestCase):
     def test_all_seven_are_listed_alike_by_default(self):
-        picker = menu.AgentMenu(ADAPTERS, {"claude"}, NONE)
+        picker = menu.Picker(ADAPTERS, {"claude"}, NONE)
         self.assertTrue(picker.expanded)
         self.assertEqual(picker.numbers(), 7)
         self.assertEqual(len(picker.lines()), 7)
@@ -20,7 +20,7 @@ class AgentMenuTest(IsolatedTestCase):
         self.assertNotIn("+ shows more", picker.prompt())
 
     def test_free_tier_can_still_be_folded_on_request(self):
-        picker = menu.AgentMenu(ADAPTERS, {"claude"}, NONE, fold_free=True)
+        picker = menu.Picker(ADAPTERS, {"claude"}, NONE, fold_free=True)
         self.assertFalse(picker.expanded)
         self.assertEqual(picker.numbers(), 4)
         lines = picker.lines()
@@ -34,13 +34,13 @@ class AgentMenuTest(IsolatedTestCase):
         self.assertNotIn("+ shows more", picker.prompt())
 
     def test_a_free_agent_on_the_machine_or_already_watched_unfolds_the_tier(self):
-        self.assertTrue(menu.AgentMenu(ADAPTERS, set(), {"goose": "found goose on PATH"}, fold_free=True).expanded)
-        self.assertTrue(menu.AgentMenu(ADAPTERS, {"qwen"}, NONE, fold_free=True).expanded)
-        self.assertTrue(menu.AgentMenu(ADAPTERS, set(), NONE).expanded)
-        self.assertFalse(menu.AgentMenu(ADAPTERS, set(), {"claude": "found ~/.claude"}, fold_free=True).expanded)
+        self.assertTrue(menu.Picker(ADAPTERS, set(), {"goose": "found goose on PATH"}, fold_free=True).expanded)
+        self.assertTrue(menu.Picker(ADAPTERS, {"qwen"}, NONE, fold_free=True).expanded)
+        self.assertTrue(menu.Picker(ADAPTERS, set(), NONE).expanded)
+        self.assertFalse(menu.Picker(ADAPTERS, set(), {"claude": "found ~/.claude"}, fold_free=True).expanded)
 
     def test_numbers_toggle_and_reveal(self):
-        picker = menu.AgentMenu(ADAPTERS, set(), NONE, fold_free=True)
+        picker = menu.Picker(ADAPTERS, set(), NONE, fold_free=True)
         picker.key("2")
         picker.key("5")  # a folded agent: the tier unfolds and the agent is checked
         self.assertTrue(picker.expanded)
@@ -50,7 +50,7 @@ class AgentMenuTest(IsolatedTestCase):
         self.assertEqual(picker.result(), ["opencode"])
 
     def test_cursor_and_space(self):
-        picker = menu.AgentMenu(ADAPTERS, set(), NONE, fold_free=True)
+        picker = menu.Picker(ADAPTERS, set(), NONE, fold_free=True)
         picker.key("up")  # already at the top
         self.assertEqual(picker.cursor, 0)
         picker.key("space")
@@ -73,7 +73,7 @@ class AgentMenuTest(IsolatedTestCase):
         self.assertEqual(picker.result(), ["claude", "copilot", "goose", "qwen"])
 
     def test_all_none_confirm_cancel(self):
-        picker = menu.AgentMenu(ADAPTERS, set(), NONE)
+        picker = menu.Picker(ADAPTERS, set(), NONE)
         picker.key("a")
         self.assertEqual(picker.result(), ["claude", "codex", "copilot", "antigravity", "opencode", "goose", "qwen"])
         picker.key("n")

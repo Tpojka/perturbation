@@ -25,7 +25,7 @@ class DoctorTest(IsolatedTestCase):
         self.run_installer("1", "--agents", "claude,codex")
         self.assertEqual(self.failures(), [])
         sections = [name for name, _ in doctor.checks()]
-        self.assertEqual(sections, ["Perturbation", "Chrome", "Claude Code", "Codex CLI"])
+        self.assertEqual(sections, ["Perturbation", "Browsers", "Claude Code", "Codex CLI"])
         with redirect_stdout(io.StringIO()) as out:
             self.assertEqual(doctor.run(), 0)
         self.assertIn("All good", out.getvalue())
