@@ -10,11 +10,10 @@ milliseconds, so two writes close together often get the same time.
 """
 import os
 import sys
-import threading
 import time
 from contextlib import contextmanager
 
-from . import paths
+from . import files, paths
 
 BUSY = "busy"
 WAITING = "waiting"  # blocked on you: a permission prompt or a question
@@ -39,10 +38,8 @@ def path(agent_id, session_id):
 def set_state(agent_id, session_id, value, project=None):
     target = path(agent_id, session_id)
     target.parent.mkdir(parents=True, exist_ok=True)
-    # A name of its own per writer, so two hooks writing at once can't rename each other's file.
-    tmp = target.with_name(f"{target.name}.{os.getpid()}.{threading.get_ident()}.tmp")
-    tmp.write_text(f"{value}\n{project or ''}\n{os.urandom(8).hex()}", encoding="utf-8")
-    os.replace(tmp, target)  # atomic, so the host never reads a half-written file
+    # One step, so the host never reads a half-written file, and one temporary name per writer.
+    files.write(target, f"{value}\n{project or ''}\n{os.urandom(8).hex()}")
 
 
 def _read(agent_id, session_id):

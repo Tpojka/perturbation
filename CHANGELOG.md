@@ -27,6 +27,7 @@ Any Chromium browser, not only Chrome. The installer asks which ones, registers 
 
 - **`config.json` is replaced in one step instead of rewritten in place.** It used to be truncated and then written, so for a sliver of time a reader saw half a file, or none of it, and fell back to the defaults. A hook reading it then skipped a notification. Worse, the popup's own writes are read-modify-write: one landing in that window would save the defaults back, losing the watched agents, the browsers, the order and every setting. With one host per browser now possible, every browser polls the file twice a second and every popup can write it, so the window was worth closing.
 - **Two popups can no longer lose each other's change.** A mute from one browser and a reorder from another are serialised by the same kind of lock the hooks use.
+- **Replacing a file now retries the rename Windows refuses.** Python opens files without `FILE_SHARE_DELETE`, so on Windows a rename over a file that any reader has open fails outright. With one host per browser reading the settings twice a second, that became likely; both the settings and the session files go through one helper that retries for up to a second. CI on Windows found it.
 - **A `config.json` that can't be read is left alone** rather than quietly replaced by the defaults on the next popup click, and the doctor reports it.
 
 ## [1.2.2] - 2026-09-21

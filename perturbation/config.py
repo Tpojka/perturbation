@@ -8,10 +8,8 @@ back over every setting.
 """
 import copy
 import json
-import os
-import threading
 
-from . import paths
+from . import files, paths
 
 DEFAULTS = {
     "notifications": False,
@@ -41,13 +39,10 @@ def load():
 
 
 def save(settings):
-    """Replace config.json atomically. The temporary name carries the process and thread, so two
-    writers at once never share it."""
+    """Replace config.json in one step, so no reader ever sees half of it."""
     path = paths.config_file()
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
-    tmp.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
-    os.replace(tmp, path)
+    files.write(path, json.dumps(settings, indent=2) + "\n")
 
 
 def damaged():
