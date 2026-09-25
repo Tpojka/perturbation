@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Perturbation · one Chrome toolbar lamp for every coding agent</title>
-<meta name="description" content="One Chrome toolbar lamp for Claude Code, Codex CLI, GitHub Copilot CLI, Antigravity CLI, opencode, Goose and Qwen Code: red while any agent works, amber when one needs you, green when all are free. Optional desktop notifications on macOS, Ubuntu and Windows.">
+<title>Perturbation · one browser toolbar lamp for every coding agent</title>
+<meta name="description" content="One browser toolbar lamp for Claude Code, Codex CLI, GitHub Copilot CLI, Antigravity CLI, opencode, Goose and Qwen Code: red while any agent works, amber when one needs you, green when all are free. Optional desktop notifications on macOS, Ubuntu and Windows.">
 <meta property="og:title" content="Perturbation">
-<meta property="og:description" content="Red while an agent works. Amber when one needs you. Green when they're all free. One Chrome toolbar lamp for every coding agent on your machine.">
+<meta property="og:description" content="Red while an agent works. Amber when one needs you. Green when they're all free. One browser toolbar lamp for every coding agent on your machine.">
 <meta property="og:url" content="https://perturbation.tpojka.com/">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><circle cx='64' cy='64' r='52.5' fill='%23d93025' stroke='%23202124' stroke-opacity='.35' stroke-width='6'/></svg>">
@@ -211,7 +211,7 @@
   <div class="hero">
     <div>
       <h1><span class="r">Red</span> while an agent works.<br><span class="a">Amber</span> when one needs you.<br><span class="g">Green</span> when they're all free.</h1>
-      <p class="lead">One Chrome toolbar lamp for every coding agent on your machine: Claude Code, Codex CLI, GitHub Copilot CLI and Antigravity CLI, plus opencode, Goose and Qwen Code on the free tier. Optional desktop notifications. It works on macOS, Ubuntu and Windows.</p>
+      <p class="lead">One browser toolbar lamp for every coding agent on your machine: Claude Code, Codex CLI, GitHub Copilot CLI and Antigravity CLI, plus opencode, Goose and Qwen Code on the free tier. Optional desktop notifications. It works on macOS, Ubuntu and Windows.</p>
       <p class="definition">perturbation (n.): in physics and astronomy, a small disturbance of a system by an outside influence, stated without any judgement of whether the disturbance is welcome.</p>
       <div class="cta">
         <a class="btn primary" href="#install">Install</a>
@@ -219,7 +219,7 @@
       </div>
     </div>
 
-    <div class="toolbar" role="img" aria-label="Chrome toolbar showing the Perturbation lamp cycling through working with three sessions, needs you, and free">
+    <div class="toolbar" role="img" aria-label="Browser toolbar showing the Perturbation lamp cycling through working with three sessions, needs you, and free">
       <div class="status big" aria-hidden="true">
         <svg class="k-r"><use href="#lamp-red"/></svg>
         <svg class="k-a"><use href="#lamp-amber"/></svg>
@@ -283,13 +283,13 @@
       <li><b>A popup you can shape</b><span>One row per agent, a mute switch each, and drag rows into the order you want.</span></li>
       <li><b>Three platforms</b><span>macOS, Ubuntu/Linux and Windows. The installer detects which one you're on and which agents you have.</span></li>
       <li><b>Stays out of the way</b><span>Hooks that always exit 0 and print nothing, merged into files that stay yours and are backed up first.</span></li>
-      <li><b>Fully local</b><span>Nothing leaves your machine. The status goes from each agent's hooks to Chrome over native messaging.</span></li>
+      <li><b>Fully local</b><span>Nothing leaves your machine. The status goes from each agent's hooks to the browser over native messaging.</span></li>
     </ul>
   </section>
 
   <section id="install">
     <h2>Install</h2>
-    <p class="sub">Requires Python 3.9 or newer and Google Chrome.</p>
+    <p class="sub">Requires Python 3.9 or newer and a Chromium browser: Chrome, Edge, Brave, Opera, Vivaldi, Arc or Chromium.</p>
 
     <div class="tabs" role="tablist" aria-label="Operating system">
       <button role="tab" aria-selected="true" data-os="macos">macOS</button>
@@ -319,22 +319,33 @@ install.cmd</code></pre></div>
   [ ] 7) Qwen Code              not found
 Space or 1-7 toggles, ↑/↓ moves, a: all, n: none, Enter confirms:
 
+Which browsers should the lamp work in?
+  [x] 1) Google Chrome    /Applications/Google Chrome.app
+  [ ] 2) Microsoft Edge   not found
+  [x] 3) Brave            /Applications/Brave Browser.app
+  [ ] 4) Opera            not found
+  [ ] 5) Vivaldi          not found
+  [ ] 6) Arc              not found
+  [ ] 7) Chromium         not found
+Space or 1-7 toggles, ↑/↓ moves, a: all, n: none, Enter confirms:
+
 What should be installed?
-  1) Chrome extension
-  2) Chrome extension + OS notifier
+  1) Browser extension
+  2) Browser extension + OS notifier
   3) Nothing (exit)
 Choose 1, 2 or 3: 2
 Play a sound with notifications? [Y/n]:
 Let Antigravity show "needs you" alerts? This sets its status line command. [y/N]:</code></pre>
 
-    <h3>Finish in Chrome (once)</h3>
+    <h3>Finish in your browser (once per browser)</h3>
     <ol class="steps">
-      <li>Open <code>chrome://extensions</code> and turn on <b>Developer mode</b>.</li>
-      <li>Click <b>Load unpacked</b> and pick the <code>extension</code> folder the installer printed.</li>
+      <li>Open its extensions page (<code>chrome://extensions</code>, <code>edge://extensions</code>, <code>brave://extensions</code>, …) and turn on <b>Developer mode</b>.</li>
+      <li>Click <b>Load unpacked</b> and pick the <code>extension</code> folder itself, the path the installer printed — not the folder above it.</li>
       <li>Pin <b>Perturbation</b> to the toolbar.</li>
       <li>Restart any running agent sessions so they load the hooks. In Codex, run <code>/hooks</code> and trust the new hooks.</li>
     </ol>
-    <p class="note">Had Claudication, Codexalgia, Copilonidal or Antigravalgia installed? The installer lists what they left behind and offers to remove it, keeps your notification settings, and prints the old extension IDs to remove at <code>chrome://extensions</code>.</p>
+    <p class="note">The same folder goes into every browser you ticked, and each one gets its own lamp showing the same thing — with a single notification, because that comes from the agent's hook and not from the browser. No Chrome needed: tick Brave alone and Brave alone is registered.</p>
+    <p class="note">Had Claudication, Codexalgia, Copilonidal or Antigravalgia installed? The installer lists what they left behind and offers to remove it, keeps your notification settings, and prints the old extension IDs to remove on your browser's extensions page.</p>
   </section>
 
   <section id="notifier">
@@ -366,13 +377,13 @@ python3 -m perturbation.install doctor</code></pre></div>
 
   <section id="how">
     <h2>How it works</h2>
-    <p class="sub">Each agent's hooks write its sessions' state. One small local helper sends the sum to Chrome.</p>
+    <p class="sub">Each agent's hooks write its sessions' state. One small local helper sends the sum to your browser.</p>
     <div class="code"><pre><code>Claude Code   ──hook──┐
 Codex CLI     ──hook──┤
 Copilot CLI   ──hook──┼──► perturbation.pyz hook &lt;agent&gt; ──► sessions/&lt;agent&gt;/&lt;session&gt;  (busy | waiting | ready)
 Antigravity   ──hook──┘                                 └──► desktop notification (optional)
 
-Chrome ──starts──► perturbation.pyz host
+browser ──starts──► perturbation.pyz host
                       watches sessions/, pushes a per-agent summary on change
                                   │  native messaging
                                   ▼

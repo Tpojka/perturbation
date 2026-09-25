@@ -1,6 +1,6 @@
 # Perturbation
 
-One Chrome toolbar lamp for every coding agent on your machine, with optional desktop notifications. It answers one question at a glance: **is any agent busy, and how many sessions are occupied?** It works on macOS, Ubuntu/Linux and Windows.
+One browser toolbar lamp for every coding agent on your machine, with optional desktop notifications. It answers one question at a glance: **is any agent busy, and how many sessions are occupied?** It works on macOS, Ubuntu/Linux and Windows.
 
 Website: <https://perturbation.tpojka.com>
 
@@ -35,7 +35,7 @@ Each agent is one adapter module with a `TIER`; see [Adding an agent](docs/addin
 
 ## Install
 
-Requires Python 3.9 or newer and Google Chrome. macOS ships Python as `/usr/bin/python3`; on Windows install it from python.org or with `winget install Python.Python.3.12`.
+Requires Python 3.9 or newer and a Chromium browser: Chrome, Edge, Brave, Opera, Vivaldi, Arc or Chromium itself. macOS ships Python as `/usr/bin/python3`; on Windows install it from python.org or with `winget install Python.Python.3.12`.
 
 ```sh
 ./install.sh        # macOS / Ubuntu
@@ -55,16 +55,28 @@ Which agents should be watched?
   [ ] 7) Qwen Code              not found
 Space or 1-7 toggles, ↑/↓ moves, a: all, n: none, Enter confirms:
 
+Which browsers should the lamp work in?
+> [x] 1) Google Chrome    /Applications/Google Chrome.app
+  [ ] 2) Microsoft Edge   not found
+  [x] 3) Brave            /Applications/Brave Browser.app
+  [ ] 4) Opera            ~/Library/Application Support/com.operasoftware.Opera (profile only)
+  [ ] 5) Vivaldi          not found
+  [ ] 6) Arc              not found
+  [ ] 7) Chromium         not found
+Space or 1-7 toggles, ↑/↓ moves, a: all, n: none, Enter confirms:
+
 What should be installed?
-  1) Chrome extension
-  2) Chrome extension + OS notifier
+  1) Browser extension
+  2) Browser extension + OS notifier
   3) Nothing (exit)
 Choose 1, 2 or 3: 2
 Play a sound with notifications? [Y/n]:
 Let Antigravity show "needs you" alerts? This sets its status line command. [y/N]:
 ```
 
-Number keys toggle an agent directly; the arrow keys (or `j`/`k`) move the cursor and **Space** toggles the agent under it. All seven agents are listed the same way, the free-tier ones last. Outside a terminal, in a pipe or a script, the same picker reads whole lines: `2 6` toggles Codex and Goose.
+Number keys toggle a row directly; the arrow keys (or `j`/`k`) move the cursor and **Space** toggles the row under it. All seven agents are listed the same way, the free-tier ones last. Outside a terminal, in a pipe or a script, the same picker reads whole lines: `2 6` toggles Codex and Goose.
+
+A browser is pre-checked when the application itself is on the machine. A browser with only a leftover profile folder is listed as `(profile only)` and left unchecked, because folders outlive uninstalls. Tick any browser you like: one you install later works as soon as you load the extension into it.
 
 If it finds Claudication, Codexalgia, Copilonidal or Antigravalgia, it lists what they left behind and offers to remove it; see [Coming from the four earlier projects](#coming-from-the-four-earlier-projects).
 
@@ -75,6 +87,8 @@ python3 -m perturbation.install 2 --agents claude,codex     # with sound
 python3 -m perturbation.install 2 --all --no-sound --statusline
 python3 -m perturbation.install 1 --migrate                 # the detected agents, and remove the predecessors
 python3 -m perturbation.install 2 --agents claude,opencode,goose,qwen
+python3 -m perturbation.install 1 --agents claude --browsers chrome,brave
+python3 -m perturbation.install 1 --all --browsers all       # every agent, every browser this OS has
 ```
 
 Everything is copied into a per-user data directory, so you can move or delete the repository afterwards:
@@ -85,12 +99,50 @@ Everything is copied into a per-user data directory, so you can move or delete t
 | Ubuntu/Linux | `~/.local/share/perturbation` (or `$XDG_DATA_HOME/perturbation`) |
 | Windows | `%LOCALAPPDATA%\Perturbation` |
 
-Then load the extension from that directory (only needed once):
+Then load the extension from that directory, once per browser:
 
-1. Open `chrome://extensions` and turn on **Developer mode**.
-2. Click **Load unpacked** and select the `extension` folder inside the data directory. The installer prints the exact path.
+1. Open the browser's extensions page (`chrome://extensions`, `edge://extensions`, `brave://extensions`, `opera://extensions`, `vivaldi://extensions`) and turn on **Developer mode**.
+2. Click **Load unpacked** and select the `extension` folder **itself**, inside the data directory — not the data directory above it, which has no `manifest.json` and is rejected with "Manifest file is missing or unreadable". The installer prints the exact path.
 3. Pin **Perturbation** to the toolbar.
 4. Restart any running agent sessions so they load the hooks.
+
+On macOS the file picker hides `~/Library`: press **Cmd+Shift+G** and paste the path the installer printed.
+
+The same unpacked folder is loaded into every browser, and the extension keeps the same ID in all of them, because `extension/manifest.json` carries a fixed `key`.
+
+### Browsers
+
+The installer registers the native host once per browser you tick, and takes the registration away from browsers you untick. The extension itself is always loaded by hand, per browser.
+
+| OS | Where a browser reads the host manifest |
+| --- | --- |
+| macOS | `~/Library/Application Support/<browser>/NativeMessagingHosts/com.tpojka.perturbation.json` |
+| Ubuntu/Linux | `~/.config/<browser>/NativeMessagingHosts/com.tpojka.perturbation.json` |
+| Windows | one manifest in the data directory, with `HKCU\Software\<vendor>\NativeMessagingHosts\com.tpojka.perturbation` pointing at it |
+
+`<browser>` is `Google/Chrome`, `Microsoft Edge`, `BraveSoftware/Brave-Browser`, `com.operasoftware.Opera`, `Vivaldi`, `Arc/User Data` or `Chromium` on macOS, and `google-chrome`, `microsoft-edge`, `BraveSoftware/Brave-Browser`, `opera`, `vivaldi` or `chromium` on Linux.
+
+Some browsers also read Chrome's folder — on macOS, Brave and Opera both do, which is why they work on a machine where only Chrome was ever registered. Perturbation still writes one manifest per browser: that behaviour is undocumented, differs per platform, and points at a folder belonging to a browser you may not have. **You do not need Chrome.** Tick Brave alone and Brave alone is registered.
+
+Arc is macOS-only here, and Snap or Flatpak browsers on Linux cannot start a native host at all, so neither is offered outside those limits. Firefox is not supported: it speaks a different dialect and, unlike Chrome, refuses to keep an unsigned extension.
+
+To change the set later, without touching anything else:
+
+```sh
+python3 -m perturbation.install set browsers chrome,brave
+python3 -m perturbation.install status      # which browsers are registered, and which are running a host
+```
+
+### If the lamp stays grey
+
+The popup prints the browser's own error. What each one means:
+
+| Message | Cause |
+| --- | --- |
+| Specified native messaging host not found | That browser has no registration. Run `set browsers` and include it. |
+| Access to the specified native messaging host is forbidden | The manifest is there but doesn't list this extension's ID. Run the installer again. |
+| Manifest file is missing or unreadable | **Load unpacked** was pointed at the data directory instead of the `extension` folder inside it. |
+| Native host not connected, with no message | The host was started and died. `python3 -m perturbation.install doctor` says which part is missing. |
 
 Per agent, the installer prints how to confirm the registration: `/hooks` inside Claude Code, Codex (where you also have to **trust** the new hooks, or Codex skips them) and Qwen Code, a restart for Copilot, `agy -p "/hooks" --output-format json` for Antigravity, and for opencode and Goose a session file appearing under `sessions/` in the data directory once you start them.
 
@@ -113,7 +165,7 @@ Claude Code honours `CLAUDE_CONFIG_DIR`, Codex `CODEX_HOME`, Copilot `COPILOT_HO
 
 ### Coming from the four earlier projects
 
-The installer finds every trace of Claudication, Codexalgia, Copilonidal and Antigravalgia (their native host manifests, data directories and hook entries), lists them, and removes them only when you say so. Their `notifications` and `sound` settings become the defaults for the questions above. Chrome extensions can't uninstall one another, so it prints the four old extension IDs for you to remove at `chrome://extensions`. Later, or non-interactively:
+The installer finds every trace of Claudication, Codexalgia, Copilonidal and Antigravalgia (their native host manifests, data directories and hook entries), lists them, and removes them only when you say so. Their `notifications` and `sound` settings become the defaults for the questions above. One extension can't uninstall another, so it prints the four old extension IDs for you to remove on the extensions page. Later, or non-interactively:
 
 ```sh
 python3 -m perturbation.install migrate          # lists, then asks
@@ -191,7 +243,7 @@ Qwen Code     ──hook────┤              ├──► <data>/session
 opencode      ──plugin──┘              └──► desktop notification (if enabled, and the state changed)
 Antigravity   ──status line──► perturbation.pyz statusline antigravity
 
-Chrome ──starts──► perturbation-host ──► perturbation.pyz host
+browser ──starts──► perturbation-host ──► perturbation.pyz host
                       watches <data>/sessions/**, pushes a per-agent summary on change
                                   │  native messaging (4-byte length prefix, UTF-8 JSON)
                                   ▼
@@ -318,7 +370,7 @@ perturbation/            Python package (standard library only)
   cli.py                 entry point of the installed perturbation.pyz: hook | statusline | host
   hook.py                the one hook handler: adapter, parse, record, notify on change
   statusline.py          status line handler for agents that have one
-  host.py                Chrome native messaging host, one for every agent
+  host.py                native messaging host, one for every agent
   state.py               per-agent, per-session files, atomic writes, damping
   notify.py              desktop notifications per OS
   config.py, paths.py    installed settings and locations
@@ -328,8 +380,11 @@ perturbation/            Python package (standard library only)
     claude.py  codex.py  copilot.py  antigravity.py     pro tier
     opencode.py  goose.py  qwen.py                      free tier
     assets/opencode-plugin.js                           the one piece of JavaScript: opencode's plugin
-  install/               installer, agent picker, migration, doctor, OS specifics
-extension/               Chrome extension (Manifest V3): lamp, badge, tooltip, popup
+  browsers/              one module per browser, and the contract they follow
+    base.py              the contract: where a browser reads host manifests, and how to register
+    chrome.py  edge.py  brave.py  opera.py  vivaldi.py  arc.py  chromium.py
+  install/               installer, pickers, migration, doctor, OS specifics
+extension/               browser extension (Manifest V3): lamp, badge, tooltip, popup
 site/                    landing page for perturbation.tpojka.com
 docs/                    the project brief and the adapter guide
 tests/                   unittest suite
@@ -345,7 +400,7 @@ The tests are self-contained: every test uses a temporary home and data director
 
 To use a data directory other than the default, set `PERTURBATION_HOME`.
 
-The extension has no unit tests. Before a release, check by hand that the badge count matches the tooltip, that the lamp goes grey when the host is killed, that the popup opens instantly after a cold start, and that the lamp survives a Chrome restart.
+The extension has no unit tests. Before a release, check by hand that the badge count matches the tooltip, that the lamp goes grey when the host is killed, that the popup opens instantly after a cold start, and that the lamp survives a browser restart. With the extension loaded in two browsers, both lamps should change together while only one notification appears, since notifications come from the agent's hook and not from the browser.
 
 ## Uninstall
 
@@ -354,7 +409,7 @@ The extension has no unit tests. Before a release, check by hand that the badge 
 uninstall.cmd       # Windows
 ```
 
-This removes every hook entry it wrote, Antigravity's status line if it is still ours, the native host registration and the data directory. Your other hooks and settings stay. Then remove the extension from `chrome://extensions`.
+This removes every hook entry it wrote, Antigravity's status line if it is still ours, the native host registration from every browser it knows, and the data directory. Your other hooks and settings stay. Then remove the extension from each browser's extensions page.
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.
 

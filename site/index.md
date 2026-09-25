@@ -2,7 +2,7 @@
 
 **Red while an agent works. Amber when one needs you. Green when they're all free.**
 
-One Chrome toolbar lamp for every coding agent on your machine: Claude Code, Codex CLI, GitHub Copilot CLI and Antigravity CLI, plus opencode, Goose and Qwen Code on the free tier. Optional desktop notifications. It works on macOS, Ubuntu and Windows.
+One browser toolbar lamp for every coding agent on your machine: Claude Code, Codex CLI, GitHub Copilot CLI and Antigravity CLI, plus opencode, Goose and Qwen Code on the free tier. Optional desktop notifications. It works on macOS, Ubuntu and Windows.
 
 > *perturbation* (n.): in physics and astronomy, a small disturbance of a system by an outside influence, stated without any judgement of whether the disturbance is welcome. That is what this does: it interrupts you, sometimes because an agent genuinely needs you and sometimes not, and takes no position on which.
 
@@ -30,11 +30,11 @@ Only one lamp is ever lit, and the fill pattern carries the meaning without colo
 - **A popup you can shape:** one row per agent, a mute switch each, and drag rows into the order you want.
 - **Three platforms:** macOS, Ubuntu/Linux and Windows. The installer detects which one you're on and which agents you have.
 - **Stays out of the way:** hooks that always exit 0 and print nothing, merged into files that stay yours, backed up first.
-- **Fully local:** nothing leaves your machine. The status goes from each agent's hooks to Chrome over native messaging.
+- **Fully local:** nothing leaves your machine. The status goes from each agent's hooks to the browser over native messaging.
 
 ## Install
 
-Requires Python 3.9 or newer and Google Chrome.
+Requires Python 3.9 or newer and a Chromium browser: Chrome, Edge, Brave, Opera, Vivaldi, Arc or Chromium.
 
 **macOS**
 
@@ -75,23 +75,35 @@ Which agents should be watched?
   [ ] 7) Qwen Code              not found
 Space or 1-7 toggles, ↑/↓ moves, a: all, n: none, Enter confirms:
 
+Which browsers should the lamp work in?
+  [x] 1) Google Chrome    /Applications/Google Chrome.app
+  [ ] 2) Microsoft Edge   not found
+  [x] 3) Brave            /Applications/Brave Browser.app
+  [ ] 4) Opera            not found
+  [ ] 5) Vivaldi          not found
+  [ ] 6) Arc              not found
+  [ ] 7) Chromium         not found
+Space or 1-7 toggles, ↑/↓ moves, a: all, n: none, Enter confirms:
+
 What should be installed?
-  1) Chrome extension
-  2) Chrome extension + OS notifier
+  1) Browser extension
+  2) Browser extension + OS notifier
   3) Nothing (exit)
 Choose 1, 2 or 3: 2
 Play a sound with notifications? [Y/n]:
 Let Antigravity show "needs you" alerts? This sets its status line command. [y/N]:
 ```
 
-Then load the extension (once):
+Then load the extension, once per browser you ticked:
 
-1. Open `chrome://extensions` and turn on **Developer mode**.
-2. Click **Load unpacked** and pick the `extension` folder the installer printed.
+1. Open the browser's extensions page (`chrome://extensions`, `edge://extensions`, `brave://extensions`, …) and turn on **Developer mode**.
+2. Click **Load unpacked** and pick the `extension` folder itself, the path the installer printed — not the folder above it.
 3. Pin **Perturbation** to the toolbar.
 4. Restart any running agent sessions so they load the hooks. In Codex, run `/hooks` and trust the new hooks.
 
-If you had Claudication, Codexalgia, Copilonidal or Antigravalgia installed, the installer lists what they left behind and offers to remove it, keeps your notification settings, and prints the old extension IDs to remove at `chrome://extensions`.
+The same folder is loaded into every browser, and one lamp per browser shows the same thing. You still get a single notification, because notifications come from the agent's hook rather than from the browser. No Chrome needed: tick Brave alone and Brave alone is registered.
+
+If you had Claudication, Codexalgia, Copilonidal or Antigravalgia installed, the installer lists what they left behind and offers to remove it, keeps your notification settings, and prints the old extension IDs to remove on your browser's extensions page.
 
 ## OS notifier
 
@@ -129,7 +141,7 @@ Codex CLI     ──hook──┤
 Copilot CLI   ──hook──┼──► perturbation.pyz hook <agent> ──► sessions/<agent>/<session>  (busy | waiting | ready)
 Antigravity   ──hook──┘                                 └──► desktop notification (optional)
 
-Chrome ──starts──► perturbation.pyz host
+browser ──starts──► perturbation.pyz host
                       watches sessions/, pushes a per-agent summary on change
                                   │  native messaging
                                   ▼
